@@ -6,7 +6,7 @@ export default function Textarea(props: TextareaProps) {
     <div className="input-box w-full">
       <textarea
         {...props}
-        className="text-box resize-none auto-cols-[8] w-full p-4 border border-gray-300 rounded-lg"
+        className="text-box auto-cols-[8] h-[226px] w-full p-[1rem] border border-[#afb3b7] rounded-[0.5rem]"
       />
     </div>
   );

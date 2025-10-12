@@ -6,7 +6,7 @@ export default function Input(props: InputProps) {
     <div className="input-container">
       <input
         {...props}
-        className="input-box w-full p-4 border border-gray-300 rounded-lg"
+        className="input-box w-full p-[1rem] border border-[#afb3b7] rounded-[0.5rem]"
       />
     </div>
   );

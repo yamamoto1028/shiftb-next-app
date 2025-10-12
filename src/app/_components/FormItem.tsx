@@ -6,7 +6,7 @@ export default function FormItem(
   >
 ) {
   return (
-    <div className="form-contents flex justify-between w-[100%] items-center mt-6">
+    <div className="form-contents flex justify-between w-[100%] items-center mt-[1.5rem]">
       {props.children}
     </div>
   );

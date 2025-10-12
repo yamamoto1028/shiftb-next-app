@@ -4,5 +4,5 @@ type ErrorMessageProps = {
 };
 export default function ErrorMessage(props: ErrorMessageProps) {
   if (!props.message) return null;
-  return <p className="text-sm text-red-700">{props.message}</p>;
+  return <p className="text-[14px] text-[#bb1010]">{props.message}</p>;
 }
