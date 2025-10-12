@@ -1,5 +1,5 @@
 "use client";
-// import "./globals.css";
+import "./globals.css";
 import Link from "next/link";
 import parse from "html-react-parser";
 import { useEffect, useState } from "react";
@@ -41,7 +41,11 @@ export default function ArticleList() {
       <main className="home-container max-w-[800px] mx-auto my-[40px] px-[1rem] overflow-auto">
         {/* 記事の数だけ繰り返し表示 */}
         {posts.map((post) => (
-          <Link href={`/details/${post.id}`} key={post.id}>
+          <Link
+            href={`/details/${post.id}`}
+            key={post.id}
+            className="no-underline"
+          >
             <article
               //追加
               className="border-1 border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer"
@@ -66,10 +70,10 @@ export default function ArticleList() {
                   ))}
                 </div>
               </div>
-              <h1 className="article-title text-[1.5rem] mt-[0.5rem] mb-[1rem]">
+              <p className="article-title text-[1.5rem] text-[#000] mt-[0.5rem] mb-[1rem]">
                 {post.title}
-              </h1>
-              <div className="text leading-[1.5] line-clamp-2">
+              </p>
+              <div className="text leading-[1.5] text-[#000] line-clamp-2">
                 {/* contentの中をHTMLとしてレンダリング */}
                 {parse(post.content)}
               </div>
