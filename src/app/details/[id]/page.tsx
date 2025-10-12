@@ -1,12 +1,12 @@
 "use client";
-import { useParams } from "react-router-dom";
 import parse from "html-react-parser";
 import { useEffect, useState } from "react";
-import type { ArticleType } from "../_types/types";
+import type { ArticleType } from "../../_types/types";
+import Image from "next/image";
 
-export default function ArticleDetail() {
+export default function ArticleDetail({ params }: { params: { id: string } }) {
+  //引数にパラメータのURL取得可能
   const [posts, setPosts] = useState<ArticleType>();
-  const { id } = useParams(); //URLのパラメータのIDを取得
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ export default function ArticleDetail() {
       try {
         setLoading(true);
         const data = await fetch(
-          `https://1hmfpsvto6.execute-api.ap-northeast-1.amazonaws.com/dev/posts/${id}`
+          `https://1hmfpsvto6.execute-api.ap-northeast-1.amazonaws.com/dev/posts/${params.id}`
         );
         const res = await data.json();
         const resResult = await res.post;
@@ -26,7 +26,7 @@ export default function ArticleDetail() {
       }
     };
     getArticleDetailData();
-  }, [id]);
+  }, [params.id]);
 
   if (loading) {
     return <div>読み込み中・・・</div>;
@@ -38,9 +38,11 @@ export default function ArticleDetail() {
     <>
       <article className="page-wrapper max-w-[800px] mx-[auto] my-[40px] p-[1rem]">
         <div className="image-container w-768px h-384px">
-          <img
+          <Image
             src={posts.thumbnailUrl}
-            alt="記事の画像"
+            width={100}
+            height={100}
+            alt={`${posts.title}の画像`}
             className="article-image w-[100%] h-[100%]"
           />
         </div>
@@ -55,7 +57,10 @@ export default function ArticleDetail() {
             </div>
             <div className="lang-box flex flex-wrap">
               {posts.categories.map((category) => (
-                <div className="post-lang text-[#06c] text-[0.8rem] border-1 border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]">
+                <div
+                  key={params.id}
+                  className="post-lang text-[#06c] text-[0.8rem] border-1 border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
+                >
                   {category}
                 </div>
               ))}
