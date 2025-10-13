@@ -3,10 +3,12 @@ import "./globals.css";
 import Link from "next/link";
 import parse from "html-react-parser";
 import { useEffect, useState } from "react";
-import type { ArticleTypes } from "./_types/types";
+import { MicroCmsPost } from "./_types/MicroCmsPost";
+// import type { ArticleTypes } from "./_types/types";
 
 export default function ArticleList() {
-  const [posts, setPosts] = useState<ArticleTypes>([]);
+  const [posts, setPosts] = useState<MicroCmsPost[]>([]);
+  // const [posts, setPosts] = useState<ArticleTypes>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -14,11 +16,16 @@ export default function ArticleList() {
       try {
         setLoading(true);
         const data = await fetch(
-          "https://1hmfpsvto6.execute-api.ap-northeast-1.amazonaws.com/dev/posts"
+          "https://k3cqma8m0n.microcms.io/api/v1/posts",
+          {
+            headers: {
+              "X-MICROCMS-API-KEY": process.env
+                .NEXT_PUBLIC_MICROCMS_API_KEY as string,
+            },
+          }
         );
-        const res = await data.json();
-        const resResult = res.posts;
-        setPosts(resResult);
+        const { contents } = await data.json();
+        setPosts(contents);
       } catch (error) {
         console.error(`記事データ取得中にエラーが発生しました`, error);
       } finally {
@@ -46,10 +53,7 @@ export default function ArticleList() {
             key={post.id}
             className="no-underline"
           >
-            <article
-              //追加
-              className="border-1 border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer"
-            >
+            <article className="border-1 border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer">
               <div className="post-info flex justify-between">
                 <div className="date text-[#888] text-[0.8rem]">
                   {post.createdAt
@@ -62,10 +66,10 @@ export default function ArticleList() {
                   {/* 言語の数だけ繰り返し表示 */}
                   {post.categories.map((category) => (
                     <div
-                      key={category} //追加
+                      key={category.id}
                       className="lang text-[#06c] text-[0.8rem] border-1 border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
                     >
-                      {category}
+                      {category.name}
                     </div>
                   ))}
                 </div>
