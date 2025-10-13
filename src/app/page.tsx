@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import type { ArticleTypes } from "./_types/types";
 
 export default function ArticleList() {
-  const [posts, setPosts] = useState<ArticleTypes>();
+  const [posts, setPosts] = useState<ArticleTypes>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function ArticleList() {
     return <div>読み込み中・・・</div>;
   }
 
-  if (!posts) {
+  if (posts.length === 0) {
     return <div>データなし</div>;
   }
 
