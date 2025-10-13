@@ -2,8 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
+/* ユーザーエージェントスタイルシート(ブラウザ側のデフォルトCSS)が効いてしまっているので上書き */
+body,
+h1,
+p {
+  margin: 0;
+}
+body {
+  font-family: " .SF NS";
+}
+
+div {
+  unicode-bidi: normal;
+}
+
+/* :root {
+--background: #ffffff;
   --foreground: #171717;
 }
 
@@ -24,4 +38,4 @@ body {
   .text-balance {
     text-wrap: balance;
   }
-}
+} */
