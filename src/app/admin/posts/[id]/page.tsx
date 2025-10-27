@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { Post } from "@prisma/client";
 import Select from "react-select";
 
+// この型やないとうまく表示されないです
 type OptionType = {
-  id: number;
-  name: string;
+  value: number;
+  label: string;
 };
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
@@ -42,12 +43,13 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         const categoryData = await fetch(
           "/api/admin/categories" //←JSON形式のデータ
         );
-        const { categories } = await categoryData.json();
+        // should: カテゴリーデータのレスポンスの型を別途定義するとよいですが一旦ここにベタベタ書きました
+        // ここでcategoriesの型を明示しないとanyになって50行目のcategoryの型の推論ができずに型エラーになります
+        const { categories }: { categories: { id: number; name: string; createdAt: string; updatedAt: string }[] } = await categoryData.json();
         const result: OptionType[] = categories
-          .slice()
-          .map((arr: { id: number; name: string }) => ({
-            id: arr.id,
-            name: arr.name,
+          .map((category) => ({
+            value: category.id,
+            label: category.name,
           }));
         setApiCategories(result);
       } catch (error) {
@@ -150,7 +152,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           </div>
           <div className="flex">
             <label htmlFor="category">カテゴリー</label>
-            <Select<OptionType, true>
+            <Select
               id="category"
               options={apiCategories}
               value={postCategories}
