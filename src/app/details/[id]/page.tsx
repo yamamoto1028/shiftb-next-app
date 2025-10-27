@@ -1,32 +1,25 @@
 "use client";
 import parse from "html-react-parser";
 import { useEffect, useState } from "react";
-// import type { ArticleType } from "../../_types/types";
 import Image from "next/image";
-import { MicroCmsPost } from "@/app/_types/MicroCmsPost";
+import { WithPostCategories } from "@/app/_types/types";
 
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
-  const [post, setPost] = useState<MicroCmsPost | null>(null);
+  const [post, setPost] = useState<WithPostCategories | null>(null);
   const [loading, setLoading] = useState(false);
   const { id } = params;
   useEffect(() => {
     const getArticleDetailData = async () => {
       try {
         setLoading(true);
-        const data = await fetch(
-          `https://k3cqma8m0n.microcms.io/api/v1/posts/${id}`,
-          {
-            headers: {
-              "X-MICROCMS-API-KEY": process.env
-                .NEXT_PUBLIC_MICROCMS_API_KEY as string,
-            },
-          }
-        );
+        const data = await fetch(`/api/posts/${id}`);
         const res = await data.json();
-        console.log(data);
-
-        setPost(res);
+        if (res.post) {
+          setPost(res.post);
+        } else {
+          throw new Error("記事が見つかりません");
+        }
       } catch (error) {
         console.error(`記事詳細データ取得中にエラーが発生しました:`, error);
       } finally {
@@ -47,7 +40,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       <article className="page-wrapper max-w-[800px] mx-[auto] my-[40px] p-[1rem]">
         <div className="image-container w-768px h-384px">
           <Image
-            src={post.thumbnail.url}
+            src={post.thumbnailUrl}
             width={100}
             height={100}
             alt={`${post.title}の画像`}
@@ -57,19 +50,19 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         <div className="post-container p-[1rem]">
           <div className="post-info flex justify-between">
             <div className="post-date text-[#888] text-[0.8rem]">
-              {post.createdAt
+              {String(post.createdAt)
                 .slice(0, 10)
                 .split("-")
                 .map((n) => Number(n))
                 .join("/")}
             </div>
             <div className="lang-box flex flex-wrap">
-              {post.categories.map((category) => (
+              {post.postCategories.map((postCategory) => (
                 <div
-                  key={category.id}
+                  key={postCategory.id}
                   className="post-lang text-[#06c] text-[0.8rem] border-1 border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
                 >
-                  {category.name}
+                  {postCategory.category.name}
                 </div>
               ))}
             </div>
@@ -79,7 +72,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           </h1>
           <div className="text leading-[1.5] ">
             {/* contentの中をHTMLとしてレンダリング */}
-            {parse(post.content)}
+            {post.content && parse(post.content)}
           </div>
         </div>
       </article>

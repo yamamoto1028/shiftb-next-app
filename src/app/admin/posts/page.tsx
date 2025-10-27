@@ -1,9 +1,10 @@
 "use client";
-import "./globals.css";
+// 管理者_記事一覧ページ
+import "../../globals.css";
 import Link from "next/link";
 import parse from "html-react-parser";
 import { useEffect, useState } from "react";
-import { WithPostCategories } from "./_types/types";
+import { WithPostCategories } from "@/app/_types/types";
 
 export default function ArticleList() {
   const [posts, setPosts] = useState<WithPostCategories[]>([]);
@@ -14,8 +15,7 @@ export default function ArticleList() {
       try {
         setLoading(true);
         const data = await fetch(
-          //api/postsを呼び出すとその配下にあるroute.tsのGETメソッドが実行される
-          "/api/posts" //←JSON形式のデータ
+          "/api/admin/posts" //←JSON形式のデータ
         );
         const { posts } = await data.json();
         setPosts(posts);
@@ -33,7 +33,17 @@ export default function ArticleList() {
   }
 
   if (posts.length === 0) {
-    return <div>データなし</div>;
+    return (
+      <div>
+        <div>データなし</div>
+        <Link
+          href="/admin/posts/new"
+          className="text-[#000] font-[700] no-underline"
+        >
+          管理者_記事新規作成ページ
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -41,7 +51,7 @@ export default function ArticleList() {
       <main className="home-container max-w-[800px] mx-auto my-[40px] px-[1rem] overflow-auto">
         {posts.map((post) => (
           <Link
-            href={`/details/${post.id}`}
+            href={`/admin/posts/${post.id}`}
             key={post.id}
             className="no-underline"
           >
@@ -74,7 +84,7 @@ export default function ArticleList() {
             </article>
           </Link>
         ))}
-        <Link href="/admin/posts/new" className="text-[#fff] no-underline">
+        <Link href="/admin/posts/new" className="text-[#000] no-underline">
           管理者_記事新規作成ページ
         </Link>
       </main>
