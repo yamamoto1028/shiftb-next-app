@@ -10,6 +10,22 @@ type OptionType = {
   value: number;
   label: string;
 };
+
+// レスポンスの型の定義
+type Category = {
+  id: number;
+  name: string;
+};
+
+type PostCategory = {
+  id: number;
+  postId: number;
+  categoryId: number;
+  createdAt: string;
+  updatedAt: string;
+  category: Category;
+};
+
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
   const { id } = params;
@@ -33,7 +49,17 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           setTitle(res.post.title);
           setContent(res.post.content);
           setThumbnailUrl(res.post.thumbnailUrl);
-          setPostCategories(res.post.postCategories);
+          // postCategoriesの型はOptionType[]になっているが
+          // でも実態は違う！確認して合わせる必要あり
+          console.log(res.post.postCategories);
+          const categories: PostCategory[] = res.post.postCategories;
+          setPostCategories(categories.map((postCategory) => {
+            const { category: { id, name } } = postCategory;
+            return {
+              value: id,
+              label: name,
+            };
+          }));
           console.log(`取得した記事データ：`);
           console.log(res.post);
         } else {
