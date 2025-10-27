@@ -5,10 +5,27 @@ import { useEffect, useState } from "react";
 import { Post } from "@prisma/client";
 import Select from "react-select";
 
+// この型やないとうまく表示されないです
 type OptionType = {
+  value: number;
+  label: string;
+};
+
+// レスポンスの型の定義
+type Category = {
   id: number;
   name: string;
 };
+
+type PostCategory = {
+  id: number;
+  postId: number;
+  categoryId: number;
+  createdAt: string;
+  updatedAt: string;
+  category: Category;
+};
+
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
   const { id } = params;
@@ -32,7 +49,17 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           setTitle(res.post.title);
           setContent(res.post.content);
           setThumbnailUrl(res.post.thumbnailUrl);
-          setPostCategories(res.post.postCategories);
+          // postCategoriesの型はOptionType[]になっているが
+          // でも実態は違う！確認して合わせる必要あり
+          console.log(res.post.postCategories);
+          const categories: PostCategory[] = res.post.postCategories;
+          setPostCategories(categories.map((postCategory) => {
+            const { category: { id, name } } = postCategory;
+            return {
+              value: id,
+              label: name,
+            };
+          }));
           console.log(`取得した記事データ：`);
           console.log(res.post);
         } else {
@@ -42,12 +69,13 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         const categoryData = await fetch(
           "/api/admin/categories" //←JSON形式のデータ
         );
-        const { categories } = await categoryData.json();
+        // should: カテゴリーデータのレスポンスの型を別途定義するとよいですが一旦ここにベタベタ書きました
+        // ここでcategoriesの型を明示しないとanyになって50行目のcategoryの型の推論ができずに型エラーになります
+        const { categories }: { categories: { id: number; name: string; createdAt: string; updatedAt: string }[] } = await categoryData.json();
         const result: OptionType[] = categories
-          .slice()
-          .map((arr: { id: number; name: string }) => ({
-            id: arr.id,
-            name: arr.name,
+          .map((category) => ({
+            value: category.id,
+            label: category.name,
           }));
         setApiCategories(result);
       } catch (error) {
@@ -150,7 +178,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           </div>
           <div className="flex">
             <label htmlFor="category">カテゴリー</label>
-            <Select<OptionType, true>
+            <Select
               id="category"
               options={apiCategories}
               value={postCategories}
