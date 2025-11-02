@@ -5,6 +5,10 @@ import parse from "html-react-parser";
 import { useEffect, useState } from "react";
 import { WithPostCategories } from "./_types/types";
 
+interface ApiResponce {
+  status: string;
+  posts: WithPostCategories[];
+}
 export default function ArticleList() {
   const [posts, setPosts] = useState<WithPostCategories[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +21,7 @@ export default function ArticleList() {
           //api/postsを呼び出すとその配下にあるroute.tsのGETメソッドが実行される
           "/api/posts" //←JSON形式のデータ
         );
-        const { posts } = await data.json();
+        const { posts }: ApiResponce = await data.json();
         setPosts(posts);
       } catch (error) {
         console.error(`記事データ取得中にエラーが発生しました`, error);
@@ -40,12 +44,8 @@ export default function ArticleList() {
     <>
       <main className="home-container max-w-[800px] mx-auto my-[40px] px-[1rem] overflow-auto">
         {posts.map((post) => (
-          <Link
-            href={`/details/${post.id}`}
-            key={post.id}
-            className="no-underline"
-          >
-            <article className="border-1 border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer">
+          <Link href={`/details/${post.id}`} key={post.id}>
+            <article className="border border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer">
               <div className="post-info flex justify-between">
                 <div className="date text-[#888] text-[0.8rem]">
                   {String(post.createdAt)
@@ -58,14 +58,14 @@ export default function ArticleList() {
                   {post.postCategories.map((postCategory) => (
                     <div
                       key={postCategory.id}
-                      className="lang text-[#06c] text-[0.8rem] border-1 border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
+                      className="lang text-[#06c] text-[0.8rem] border border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
                     >
                       {postCategory.category.name}
                     </div>
                   ))}
                 </div>
               </div>
-              <p className="article-title text-[1.5rem] text-[#000] mt-[0.5rem] mb-[1rem]">
+              <p className="text-[1.5rem] font-bold text-[#000] mt-[0.5rem] mb-[1rem]">
                 {post.title}
               </p>
               <div className="text leading-[1.5] text-[#000] line-clamp-2">

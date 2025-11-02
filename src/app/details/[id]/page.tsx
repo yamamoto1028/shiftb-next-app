@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { WithPostCategories } from "@/app/_types/types";
 
+interface ApiResponse {
+  status: string;
+  post: WithPostCategories;
+}
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
   const [post, setPost] = useState<WithPostCategories | null>(null);
@@ -14,9 +18,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       try {
         setLoading(true);
         const data = await fetch(`/api/posts/${id}`);
-        const res = await data.json();
-        if (res.post) {
-          setPost(res.post);
+        const { post }: ApiResponse = await data.json();
+        console.log(post);
+        if (post) {
+          setPost(post);
         } else {
           throw new Error("記事が見つかりません");
         }
@@ -49,7 +54,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         </div>
         <div className="post-container p-[1rem]">
           <div className="post-info flex justify-between">
-            <div className="post-date text-[#888] text-[0.8rem]">
+            <div className="text-[#888] text-[0.8rem]">
               {String(post.createdAt)
                 .slice(0, 10)
                 .split("-")
@@ -60,14 +65,14 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
               {post.postCategories.map((postCategory) => (
                 <div
                   key={postCategory.id}
-                  className="post-lang text-[#06c] text-[0.8rem] border-1 border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
+                  className="post-lang text-[#06c] text-[0.8rem] border border-[#06c] rounded-[0.2rem] mr-[0.5rem] px-[0.4rem] py-[0.2rem]"
                 >
                   {postCategory.category.name}
                 </div>
               ))}
             </div>
           </div>
-          <h1 className="article-title text-[1.5rem] mt-[0.5rem] mb-[1rem]">
+          <h1 className="article-title font-bold text-[1.5rem] mt-[0.5rem] mb-[1rem]">
             {post.title}
           </h1>
           <div className="text leading-[1.5] ">

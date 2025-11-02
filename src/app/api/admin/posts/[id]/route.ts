@@ -68,7 +68,7 @@ interface UpdatePostRequestBody {
   title: string;
   content: string;
   postCategories: {
-    id: number;
+    value: number;
     name: string;
   }[];
   thumbnailUrl: string;
@@ -108,7 +108,7 @@ export const PUT = async (
     await prisma.postCategory.createMany({
       data: postCategories.map((category) => ({
         postId: Number(id),
-        categoryId: category.id,
+        categoryId: category.value,
       })),
     });
     return NextResponse.json(
