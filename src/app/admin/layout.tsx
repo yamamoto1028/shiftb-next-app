@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "../globals.css";
-import AdminBar from "../_components/AdminBar";
+import AdminBar from "./_components/AdminBar";
 
 export const metadata: Metadata = {
   title: "お問い合わせ",
