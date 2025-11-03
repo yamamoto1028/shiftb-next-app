@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export function AdminHeaderListPage(props: { title: string; href: string }) {
+export default function AdminHeaderListPage(props: {
+  title: string;
+  href: string;
+}) {
   return (
     <>
       <div className="flex justify-between">
