@@ -1,16 +1,11 @@
 // 管理者_記事編集ページ
 "use client";
-import { AdminHeaderListPageDetails } from "@/app/_components/AdminHeaderListPageDetails";
 import "../../../globals.css";
 import { useEffect, useState } from "react";
-import Select from "react-select";
 import { useRouter } from "next/navigation";
-import AdminErrorMassage from "@/app/_components/AdminErrorMassage";
-import AdminLabel from "@/app/_components/AdminLabel";
-import AdminInput from "@/app/_components/AdminInput";
-import AdminTextarea from "@/app/_components/AdminTextarea";
-import AdminUpdateButton from "@/app/_components/AdminUpdateButton";
-import AdminDeleteButton from "@/app/_components/AdminDeleteButton";
+import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
+import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
+import AdminPostForm from "@/app/admin/_components/AdminPostForm";
 
 interface OptionType {
   value: number;
@@ -59,6 +54,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const { id } = params;
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
@@ -129,18 +125,64 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     setThumbnailUrl(e.target.value);
   };
 
+  const handleCheckInput = () => {
+    let hasError = false; //全体のエラーフラグ
+    let hasErrorTitle = false; //タイトルのエラーフラグ
+    let hasErrorContent = false; //内容のエラーフラグ
+    let hasErrorThumbnailUrl = false; //サムネイルのエラーフラグ
+    //タイトル欄チェック
+    if (!title) {
+      hasErrorTitle = true;
+      setErrMsgTitle("タイトルは必須です");
+    } else if (title.length >= 20) {
+      hasErrorTitle = true;
+      setErrMsgTitle("タイトルは20文字未満にしてください");
+    } else {
+      hasErrorTitle = false;
+      setErrMsgTitle("");
+    }
+    // 内容欄チェック
+    if (!content) {
+      hasErrorContent = true;
+      setErrMsgContent("内容は必須です");
+    } else if (content.length >= 500) {
+      hasErrorContent = true;
+      setErrMsgContent("内容は500文字未満にしてください");
+    } else {
+      hasErrorContent = false;
+      setErrMsgContent("");
+    }
+    // サムネイルURL欄チェック
+    if (!thumbnailUrl) {
+      hasErrorThumbnailUrl = true;
+      setErrMsgThumbnail("画像を指定してください");
+    } else {
+      hasErrorThumbnailUrl = false;
+      setErrMsgThumbnail("");
+    }
+    if (
+      //3つのチェックのうち、ひとつでもエラーがあればエラーフラグtrueをセット
+      hasErrorTitle === false &&
+      hasErrorContent === false &&
+      hasErrorThumbnailUrl === false
+    ) {
+      hasError = false;
+    } else {
+      hasError = true;
+    }
+    return hasError;
+  };
   const handleUpdate = async (e: React.FormEvent<HTMLButtonElement>) => {
     //記事更新処理
     try {
       e.preventDefault();
       const hasError = handleCheckInput(); //実行の結果を変数に格納することで「handleCheckInput」の実行結果を再利用可能になる。
-      setIsError(hasError);
       if (confirm(`記事を更新しますか？`)) {
         if (hasError) {
           alert("入力内容に誤りがあります");
           return;
         }
-        setLoading(true);
+        setSending(true);
         const data = await fetch(`/api/admin/posts/${id}`, {
           method: "PUT",
           headers: {
@@ -159,9 +201,9 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         console.log(res);
       }
     } catch (error) {
-      console.error("記事更新中にエラーが発生しました:", error);
+      console.log("記事更新中にエラーが発生しました:", error);
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
@@ -186,42 +228,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       }
     }
   };
-  const handleCheckInput = () => {
-    let hasError = false;
-    //タイトル欄チェック
-    if (!title) {
-      hasError = true;
-      setErrMsgTitle("タイトルは必須です");
-    } else if (title.length >= 20) {
-      hasError = true;
-      setErrMsgTitle("タイトルは20文字未満にしてください");
-    } else {
-      hasError = false;
-      setErrMsgTitle("");
-    }
-    // 内容欄チェック
-    if (!content) {
-      hasError = true;
-      setErrMsgContent("内容は必須です");
-    } else if (content.length >= 500) {
-      hasError = true;
-      setErrMsgContent("内容は500文字未満にしてください");
-    } else {
-      hasError = false;
-      setErrMsgContent("");
-    }
-    // サムネイルURL欄チェック
-    if (!thumbnailUrl) {
-      hasError = true;
-      setErrMsgThumbnail("画像を指定してください");
-    } else {
-      hasError = false;
-      setErrMsgThumbnail("");
-    }
-    setIsError(hasError);
-    return hasError;
-  };
 
+  if (sending) {
+    return <div>送信中・・・</div>;
+  }
   if (loading) {
     return <div>読み込み中・・・</div>;
   }
@@ -229,115 +239,31 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     return <div className="undefinedArticle">記事がありません</div>;
   }
   return (
-    <>
-      <article className="home-container p-4 w-[95%]">
-        <AdminHeaderListPageDetails title="記事編集" />
-        <form method="post">
-          <div className="mt-4 px-4">
-            <div className="flex flex-col">
-              <AdminLabel htmlFor="title">タイトル</AdminLabel>
-              <AdminInput
-                id="title"
-                value={title}
-                onChange={handleChangeTitle}
-              />
-              {errMsgTitle ? (
-                <AdminErrorMassage>{errMsgTitle}</AdminErrorMassage>
-              ) : (
-                ""
-              )}
-            </div>
-            <div className="flex flex-col">
-              <AdminLabel htmlFor="content">内容</AdminLabel>
-              <AdminTextarea
-                id="content"
-                onChange={handleChangeContent}
-                value={content}
-              />
-              {errMsgContent ? (
-                <AdminErrorMassage>{errMsgContent}</AdminErrorMassage>
-              ) : (
-                ""
-              )}
-            </div>
-            <div className="flex flex-col">
-              <AdminLabel htmlFor="thumbnail">サムネイルURL</AdminLabel>
-              <AdminInput
-                id="thumbnail"
-                value={thumbnailUrl}
-                onChange={handleChangeThumbnailUrl}
-              />
-              {errMsgTitle ? (
-                <AdminErrorMassage>{errMsgTitle}</AdminErrorMassage>
-              ) : (
-                ""
-              )}
-              {errMsgThumbnail ? (
-                <AdminErrorMassage>{errMsgThumbnail}</AdminErrorMassage>
-              ) : (
-                ""
-              )}
-            </div>
-            <div className="flex flex-col">
-              <AdminLabel htmlFor="category">カテゴリー</AdminLabel>
-              <Select
-                inputId="category"
-                options={apiCategories}
-                aria-label="カテゴリーを選択"
-                value={postCategories}
-                onChange={(selected) => {
-                  setPostCategories(selected as OptionType[]);
-                }}
-                isClearable={false} //セレクトボックス最右の×ボタン非表示
-                closeMenuOnSelect={false} //選択してもメニューを閉じない
-                hideSelectedOptions={false} //選択済みのオプションもメニューに表示
-                isMulti
-                placeholder="カテゴリーを選択"
-                styles={{
-                  control: (base) => ({
-                    //「base」はデフォルトのスタイル設定で、スプレット構文で適用する。指定は任意。
-                    ...base,
-                    minHeight: "70px",
-                    height: "70px",
-                  }),
-                  multiValue: () => ({
-                    backgroundColor: "#dbeafe",
-                    borderRadius: "25px",
-                    padding: "12px",
-                    margin: "2px",
-                  }), // Selectコンポーネントは「react-select」が独自のタグのセットを返しているためこの指定で適用される
-                  multiValueLabel: () => ({
-                    fontSize: "16px",
-                    padding: 0,
-                  }),
-                  option: (base, { isSelected }) => ({
-                    // ドロップダウンメニュー内の各項目のスタイル設定→「option:」で指定できる(isSelectedは選択されているかの真偽値が入ってる)
-                    ...base,
-                    // "$:transition": { backgroundColor: "3s" },
-                    backgroundColor: isSelected //三項演算子でスタイル指定/背景色
-                      ? "#818cf8"
-                      : base.backgroundColor,
-                    color: isSelected ? "#fff" : base.color, //文字色
-                    cursor: "pointer",
-                    "&:hover": {
-                      backgroundColor: isSelected ? "#818cf8" : "#e0e7ff",
-                      transition: "background-color 0.5s ease", // ホバー時だけアニメーション
-                    },
-                  }),
-                }}
-                components={{
-                  IndicatorSeparator: () => null, // 右側にあるセパレーターを非表示
-                  MultiValueRemove: () => null, // 選択済みカテゴリー個別の×ボタンを非表示
-                }}
-              />
-            </div>
-            <div>
-              <AdminUpdateButton onClick={handleUpdate} />
-              <AdminDeleteButton onClick={handleDelete} />
-            </div>
-          </div>
-        </form>
-      </article>
-    </>
+    <AdminPostForm
+      title="記事編集"
+      titleValue={title}
+      titleOnChange={handleChangeTitle}
+      titleDisabled={sending}
+      errMsgTitle={errMsgTitle}
+      contentValue={content}
+      contentOnChange={handleChangeContent}
+      contentDisabled={sending}
+      errMsgContent={errMsgContent}
+      thumbnailUrlValue={thumbnailUrl}
+      thumnailUrlOnChange={handleChangeThumbnailUrl}
+      thumbnailUrlDisabled={sending}
+      errMsgThumbnail={errMsgThumbnail}
+      categoryOptions={apiCategories}
+      categoryValue={postCategories}
+      categoryOnChange={(selected) => {
+        setPostCategories(selected as OptionType[]);
+      }}
+      categoryIsDisabled={sending}
+    >
+      <div>
+        <AdminUpdateButton onClick={handleUpdate} disabled={sending} />
+        <AdminDeleteButton onClick={handleDelete} disabled={sending} />
+      </div>
+    </AdminPostForm>
   );
 }

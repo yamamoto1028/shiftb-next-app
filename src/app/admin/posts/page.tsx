@@ -4,7 +4,7 @@ import "../../globals.css";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WithPostCategories } from "@/app/_types/types";
-import { AdminHeaderListPage } from "@/app/_components/AdminHeaderListPage";
+import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
 
 interface ApiResponse {
   status: string;

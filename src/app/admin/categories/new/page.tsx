@@ -1,12 +1,13 @@
 // カテゴリー新規作成ページ
 "use client";
-import { AdminHeaderListPageDetails } from "@/app/_components/AdminHeaderListPageDetails";
+import AdminHeaderListPageDetails from "@/app/admin/_components/AdminHeaderListPageDetails";
 import "../../../globals.css";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AdminCreateButton from "@/app/_components/AdminCreateButton";
-import AdminLabel from "@/app/_components/AdminLabel";
-import AdminInput from "@/app/_components/AdminInput";
+import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
+import AdminLabel from "@/app/admin/_components/AdminLabel";
+import AdminInput from "@/app/admin/_components/AdminInput";
+import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 
 interface SubmitResData {
   status: string;
@@ -64,21 +65,14 @@ export default function AddCategoriesPage() {
     return <div>送信中・・・</div>;
   }
   return (
-    <div className="home-container p-4 w-[95%]">
-      <div className="px-4">
-        <AdminHeaderListPageDetails title="カテゴリー作成" />
-        <form method="post">
-          <div className="mt-8 flex flex-col">
-            <AdminLabel htmlFor="categoryName">カテゴリー名</AdminLabel>
-            <AdminInput
-              id="categoryName"
-              onChange={handleChangeInputCategory}
-              value={name}
-            />
-          </div>
-          <AdminCreateButton onClick={handleSubmit} />
-        </form>
-      </div>
-    </div>
+    <AdminCategoryForm
+      title="カテゴリー作成"
+      label="カテゴリー名"
+      onChange={handleChangeInputCategory}
+      value={name}
+      disabled={sending}
+    >
+      <AdminCreateButton onClick={handleSubmit} />
+    </AdminCategoryForm>
   );
 }

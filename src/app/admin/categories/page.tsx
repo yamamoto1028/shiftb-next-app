@@ -4,7 +4,7 @@ import "../../globals.css";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Category } from "@prisma/client";
-import { AdminHeaderListPage } from "@/app/_components/AdminHeaderListPage";
+import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
 
 export default function CategoryList() {
   const [categories, setCategories] = useState<Category[]>([]);

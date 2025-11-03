@@ -1,10 +1,8 @@
 // カテゴリー編集ページ
 "use client";
-import AdminDeleteButton from "@/app/_components/AdminDeleteButton";
-import { AdminHeaderListPageDetails } from "@/app/_components/AdminHeaderListPageDetails";
-import AdminInput from "@/app/_components/AdminInput";
-import AdminLabel from "@/app/_components/AdminLabel";
-import AdminUpdateButton from "@/app/_components/AdminUpdateButton";
+import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
+import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
+import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -26,6 +24,7 @@ export default function EditCategoryPage({
   const [category, setCategory] = useState("");
   const [oldCategory, setOldCategory] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const router = useRouter();
   useEffect(() => {
     const getCategoryDetailData = async () => {
@@ -69,7 +68,7 @@ export default function EditCategoryPage({
     }
     if (confirm(`更新しますか？`)) {
       try {
-        setLoading(true);
+        setSending(true);
         const data = await fetch(`/api/admin/categories/${id}`, {
           method: "PUT",
           headers: {
@@ -83,7 +82,7 @@ export default function EditCategoryPage({
       } catch (error) {
         console.log(`データ更新中にエラーが発生しました`, error);
       } finally {
-        setLoading(false);
+        setSending(false);
         router.push("/admin/categories");
       }
     }
@@ -111,25 +110,24 @@ export default function EditCategoryPage({
       }
     }
   };
+  if (loading) {
+    return <>読み込み中・・・</>;
+  }
+  if (sending) {
+    return <>送信中・・・</>;
+  }
   return (
-    <div className="home-container p-4 px-[1rem] w-[95%]">
-      <div className="px-4">
-        <AdminHeaderListPageDetails title="カテゴリー編集" />
-        <form method="POST" className="mt-3">
-          <div className="flex flex-col">
-            <AdminLabel htmlFor="name">カテゴリー名</AdminLabel>
-            <AdminInput
-              id="text"
-              onChange={handleChangeInput}
-              value={category}
-            />
-          </div>
-          <div>
-            <AdminUpdateButton onClick={handleUpdateCategory} />
-            <AdminDeleteButton onClick={handleDeleteCategory} />
-          </div>
-        </form>
+    <AdminCategoryForm
+      title="カテゴリー編集"
+      label="カテゴリー名"
+      onChange={handleChangeInput}
+      value={category}
+      disabled={sending}
+    >
+      <div>
+        <AdminUpdateButton onClick={handleUpdateCategory} disabled={sending} />
+        <AdminDeleteButton onClick={handleDeleteCategory} disabled={sending} />
       </div>
-    </div>
+    </AdminCategoryForm>
   );
 }
