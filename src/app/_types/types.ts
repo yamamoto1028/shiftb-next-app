@@ -1,10 +1,11 @@
-// export type ArticleType = {
-//   id: number;
-//   title: string;
-//   thumbnailUrl: string;
-//   createdAt: string;
-//   categories: string[];
-//   content: string;
-// };
+// Post型のリレーションまで定義した型を作る
+// Post → PostCategory → Category
+import { Prisma } from "@prisma/client";
 
-// export type ArticleTypes = ArticleType[];
+export type WithPostCategories = Prisma.PostGetPayload<{
+  include: {
+    postCategories: {
+      include: { category: true };
+    };
+  };
+}>;
