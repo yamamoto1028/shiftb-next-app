@@ -35,12 +35,11 @@ export default function CategoryList() {
   if (categories.length === 0) {
     return (
       <div>
-        <div>データなし</div>
-        <Link
-          href="/admin/categories/new"
-          className="text-[#000] font-[700] no-underline"
-        >
-          管理者_カテゴリー新規作成ページ
+        <div>データがありません</div>
+        <Link href="/admin/categories/new">
+          <button className="bg-blue-500 hover:bg-blue-700 border-[#548bf0] text-white font-black py-2 px-4 rounded">
+            新規作成
+          </button>
         </Link>
       </div>
     );

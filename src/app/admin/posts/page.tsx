@@ -41,11 +41,10 @@ export default function ArticleList() {
     return (
       <div>
         <div>記事がありません</div>
-        <Link
-          href="/admin/posts/new"
-          className="text-[#000] font-[700] no-underline"
-        >
-          管理者_記事新規作成ページ
+        <Link href={`/admin/posts/new`}>
+          <button className="bg-blue-500 hover:bg-blue-700 border-[#548bf0] text-white font-black py-2 px-4 rounded">
+            新規作成
+          </button>
         </Link>
       </div>
     );
