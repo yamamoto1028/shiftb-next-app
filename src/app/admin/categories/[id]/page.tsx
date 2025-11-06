@@ -1,5 +1,6 @@
 // カテゴリー編集ページ
 "use client";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
@@ -26,11 +27,18 @@ export default function EditCategoryPage({
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const router = useRouter();
+  const { token } = useSupabaseSession();
   useEffect(() => {
+    if (!token) return;
     const getCategoryDetailData = async () => {
       try {
         setLoading(true);
-        const data = await fetch(`/api/admin/categories/${id}`);
+        const data = await fetch(`/api/admin/categories/${id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+        });
         const res: ApiResponse = await data.json();
         if (res.category) {
           setCategory(res.category.name);
@@ -56,6 +64,7 @@ export default function EditCategoryPage({
     e: React.FormEvent<HTMLButtonElement>
   ) => {
     e.preventDefault();
+    if (!token) return;
     if (!category) {
       alert(
         "カテゴリー名が入力されていません。削除する場合は削除ボタンを押してください。"
@@ -73,6 +82,7 @@ export default function EditCategoryPage({
           method: "PUT",
           headers: {
             "contents-Type": "application/json",
+            Authorization: token,
           },
           body: JSON.stringify({
             name: category,

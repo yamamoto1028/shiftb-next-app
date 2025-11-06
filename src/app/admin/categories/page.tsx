@@ -5,18 +5,23 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Category } from "@prisma/client";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 
 export default function CategoryList() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const { token } = useSupabaseSession();
 
   useEffect(() => {
+    if (!token) return;
     const getCategoryData = async () => {
       try {
         setLoading(true);
-        const data = await fetch(
-          "/api/admin/categories" //←JSON形式のデータ
-        );
+        const data = await fetch("/api/admin/categories", {
+          headers: {
+            Authorization: token,
+          },
+        });
         const { categories }: { categories: Category[] } = await data.json();
         setCategories(categories);
       } catch (error) {

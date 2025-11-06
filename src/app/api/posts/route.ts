@@ -1,3 +1,4 @@
+"use server";
 // 記事一覧取得API
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
@@ -28,7 +29,6 @@ export const GET = async (request: NextRequest) => {
         createdAt: "desc",
       },
     });
-    console.log(posts);
 
     // レスポンスを返す
     return NextResponse.json({ status: "OK", posts: posts }, { status: 200 });

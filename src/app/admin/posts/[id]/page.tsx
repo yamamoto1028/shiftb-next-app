@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminPostForm from "@/app/admin/_components/AdminPostForm";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 
 interface OptionType {
   value: number;
@@ -62,17 +63,24 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const [apiCategories, setApiCategories] = useState<OptionType[]>([]);
   const router = useRouter();
   // エラーメッセージ管理
-  const [isError, setIsError] = useState(false);
   const [errMsgTitle, setErrMsgTitle] = useState("");
   const [errMsgContent, setErrMsgContent] = useState("");
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
 
+  const { token } = useSupabaseSession();
+
   useEffect(() => {
+    if (!token) return;
     const getArticleDetailData = async () => {
       try {
         setLoading(true);
         // 記事のデータ取得
-        const data = await fetch(`/api/admin/posts/${id}`);
+        const data = await fetch(`/api/admin/posts/${id}`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+        });
         const res: ApiResponse = await data.json();
         if (res) {
           setPost(res.post);
@@ -94,9 +102,12 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           throw new Error("記事が見つかりません");
         }
         // カテゴリーのデータ取得
-        const categoryData = await fetch(
-          "/api/admin/categories" //←JSON形式のデータ
-        );
+        const categoryData = await fetch("/api/admin/categories", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+        });
         const { categories }: CategoryResponseType = await categoryData.json();
         console.log(categories);
         const result = categories.map((category) => ({
@@ -175,6 +186,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const handleUpdate = async (e: React.FormEvent<HTMLButtonElement>) => {
     //記事更新処理
     try {
+      if (!token) return;
       e.preventDefault();
       const hasError = handleCheckInput(); //実行の結果を変数に格納することで「handleCheckInput」の実行結果を再利用可能になる。
       if (confirm(`記事を更新しますか？`)) {
@@ -187,6 +199,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: token,
           },
           body: JSON.stringify({
             title,
@@ -210,11 +223,16 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const handleDelete = async (e: React.FormEvent<HTMLButtonElement>) => {
     //記事削除処理
     e.preventDefault();
+    if (!token) return;
     if (confirm(`${title}の記事を削除しますか？`)) {
       setLoading(true);
       try {
         const data = await fetch(`/api/admin/posts/${id}`, {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
         });
         const res: ApiResponse = await data.json();
         alert("記事を削除しました");

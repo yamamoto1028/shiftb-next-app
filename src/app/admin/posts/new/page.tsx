@@ -3,6 +3,7 @@ import "../../../globals.css";
 import { useEffect, useState } from "react";
 import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
 import AdminPostForm from "@/app/admin/_components/AdminPostForm";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 
 interface OptionType {
   value: number;
@@ -22,12 +23,21 @@ export default function MakeDetail() {
   const [errMsgContent, setErrMsgContent] = useState("");
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
 
+  const { token } = useSupabaseSession();
+
   useEffect(() => {
+    if (!token) return;
     const getCategoryData = async () => {
       try {
         setLoading(true);
         const data = await fetch(
-          "/api/admin/categories" //←JSON形式のデータ
+          "/api/admin/categories",
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token,
+            },
+          } //←JSON形式のデータ
         );
         const { categories }: { categories: { id: number; name: string }[] } =
           await data.json();
@@ -120,10 +130,12 @@ export default function MakeDetail() {
           return;
         }
         setSending(true);
+        if (!token) return;
         await fetch("/api/admin/posts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: token,
           },
           body: JSON.stringify({
             title,

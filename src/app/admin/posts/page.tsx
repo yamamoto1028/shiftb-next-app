@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { WithPostCategories } from "@/app/_types/types";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 
 interface ApiResponse {
   status: string;
@@ -13,17 +14,22 @@ interface ApiResponse {
 export default function ArticleList() {
   const [posts, setPosts] = useState<WithPostCategories[]>([]);
   const [loading, setLoading] = useState(false);
+  const { token } = useSupabaseSession();
 
   useEffect(() => {
+    if (!token) return;
     const getArticleData = async () => {
       try {
         setLoading(true);
-        const data = await fetch(
-          "/api/admin/posts" //←JSON形式のデータ
-        );
+        const data = await fetch("/api/admin/posts", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+        });
         const { posts }: ApiResponse = await data.json();
         console.log(posts);
-        setPosts(posts);
+        setPosts([...posts]);
       } catch (error) {
         console.error(`記事データ取得中にエラーが発生しました`, error);
       } finally {
@@ -31,7 +37,7 @@ export default function ArticleList() {
       }
     };
     getArticleData();
-  }, []);
+  }, [token]);
 
   if (loading) {
     return <div>読み込み中・・・</div>;

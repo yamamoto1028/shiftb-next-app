@@ -8,6 +8,7 @@ import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
 import AdminLabel from "@/app/admin/_components/AdminLabel";
 import AdminInput from "@/app/admin/_components/AdminInput";
 import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 
 interface SubmitResData {
   status: string;
@@ -18,6 +19,7 @@ interface SubmitResData {
 export default function AddCategoriesPage() {
   const [name, setName] = useState("");
   const [sending, setSending] = useState(false);
+  const { token } = useSupabaseSession();
 
   const router = useRouter();
   const handleChangeInputCategory = (
@@ -32,6 +34,7 @@ export default function AddCategoriesPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    if (!token) return;
     try {
       setSending(true);
       if (!name) {
@@ -42,6 +45,7 @@ export default function AddCategoriesPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: token, //token(ログインしたユーザしか持っていない情報も一緒に渡す)
         },
         body: JSON.stringify({
           name,

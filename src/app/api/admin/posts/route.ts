@@ -1,12 +1,21 @@
 "use server";
 // 管理者_記事一覧取得API
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
 
 // GETという命名にすることで、GETリクエストの時にこの関数が呼ばれる
 export const GET = async (request: NextRequest) => {
+  // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
+  const token = request.headers.get("Authorization") ?? "";
+  // supabaseに対してtokenを送る
+  const { error } = await supabase.auth.getUser(token);
+  // 送ったtokenが正しくない場合、errorが返却されるので、クライアントにもエラーを返却
+  if (error) {
+    NextResponse.json({ status: error.message }, { status: 400 });
+  }
   try {
     // Postの一覧をDBから取得
     const posts = await prisma.post.findMany({
