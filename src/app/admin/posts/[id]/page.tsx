@@ -122,7 +122,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       }
     };
     getArticleDetailData();
-  }, [id]);
+  }, [token, id]);
 
   const handleChangeTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
