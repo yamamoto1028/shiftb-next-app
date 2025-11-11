@@ -8,6 +8,7 @@ interface AdminCategoryFormProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   value: string;
   disabled: boolean;
+  className: string;
   children: JSX.Element;
 }
 
@@ -24,6 +25,7 @@ export default function AdminCategoryForm(props: AdminCategoryFormProps) {
               onChange={props.onChange}
               value={props.value}
               disabled={props.disabled}
+              className={props.className}
             />
           </div>
           <div>{props.children}</div>

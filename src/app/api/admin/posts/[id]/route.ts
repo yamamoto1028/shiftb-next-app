@@ -69,9 +69,9 @@ interface UpdatePostRequestBody {
   content: string;
   postCategories: {
     value: number;
-    name: string;
+    label: string;
   }[];
-  thumbnailUrl: string;
+  thumbnailImageKey: string;
 }
 export const PUT = async (
   request: NextRequest,
@@ -83,7 +83,7 @@ export const PUT = async (
     const {
       title,
       content,
-      thumbnailUrl,
+      thumbnailImageKey,
       postCategories,
     }: UpdatePostRequestBody = body;
 
@@ -94,7 +94,7 @@ export const PUT = async (
       data: {
         title,
         content,
-        thumbnailUrl,
+        thumbnailImageKey,
       },
     });
 

@@ -19,11 +19,13 @@ export default function CategoryList() {
         setLoading(true);
         const data = await fetch("/api/admin/categories", {
           headers: {
+            "Content-Type": "application/json",
             Authorization: token,
           },
         });
         const { categories }: { categories: Category[] } = await data.json();
-        setCategories(categories);
+        console.log(categories);
+        setCategories([...categories]);
       } catch (error) {
         console.error(`カテゴリーデータ取得中にエラーが発生しました`, error);
       } finally {
@@ -31,7 +33,7 @@ export default function CategoryList() {
       }
     };
     getCategoryData();
-  }, []);
+  }, [token]);
 
   if (loading) {
     return <div>読み込み中・・・</div>;

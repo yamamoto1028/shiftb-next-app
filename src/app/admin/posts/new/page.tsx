@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
 import AdminPostForm from "@/app/admin/_components/AdminPostForm";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
+import { supabase } from "@/utils/supabase";
+import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
 
 interface OptionType {
   value: number;
@@ -18,6 +20,11 @@ export default function MakeDetail() {
   const [apiCategories, setApiCategories] = useState<OptionType[]>([]); //Categoryテーブルに登録されているカテゴリーを取得
   const [sending, setSending] = useState(false); //送信中管理
   const [loading, setLoading] = useState(false); //読み込み中管理
+  const [thumbnailImageKey, setThumbnailImageKey] = useState("");
+  // Imageタグのsrcにセットする画像URLを持たせるstate
+  const [thumbnailImageUrl, setThumbnailImageUrl] = useState<null | string>(
+    null
+  );
   // エラーメッセージ管理
   const [errMsgTitle, setErrMsgTitle] = useState("");
   const [errMsgContent, setErrMsgContent] = useState("");
@@ -54,7 +61,20 @@ export default function MakeDetail() {
       }
     };
     getCategoryData();
-  }, []);
+  }, [token]);
+  useEffect(() => {
+    if (!thumbnailImageKey) return;
+    // アップロード時に取得した、thumbnailImageKeyを用いて画像のURLを取得
+    const fetcher = async () => {
+      const {
+        data: { publicUrl },
+      } = await supabase.storage
+        .from("post_thumbnail")
+        .getPublicUrl(thumbnailImageKey);
+      setThumbnailImageUrl(publicUrl);
+    };
+    fetcher();
+  }, [thumbnailImageKey]);
 
   const handleCheckInput = () => {
     let hasError = false;
@@ -84,7 +104,7 @@ export default function MakeDetail() {
       setErrMsgContent("");
     }
     // サムネイルURL欄チェック
-    if (!thumbnailUrl) {
+    if (!thumbnailImageUrl) {
       hasErrorThumbnailUrl = true;
       setErrMsgThumbnail("画像を指定してください");
     } else {
@@ -109,14 +129,35 @@ export default function MakeDetail() {
   const handleChangeContent = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
   };
-  const handleChangeThumbnailUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setThumbnailUrl(e.target.value);
+  const handleChangeThumbnailUrl = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return; //画像が選択されていない場合はreturn
+    }
+    const file = e.target.files[0]; // 選択された画像を取得
+    const filePath = `private/${uuidv4()}`; //ファイルパスを指定
+    setThumbnailUrl(file.name);
+    // Supabaseに画像をアップロード
+    const { data, error } = await supabase.storage
+      .from("post_thumbnail") //バケット名を指定
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+    // アップロードに失敗したらエラー出して終了
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    // data.pathに、画像固有のkeyが入っているので、thumbnailImageKeyに格納する
+    setThumbnailImageKey(data.path);
   };
 
   const handleClearInput = () => {
     setTitle("");
     setContent("");
-    setThumbnailUrl("");
+    setThumbnailImageUrl(null);
     setPostCategories([]);
   };
 
@@ -140,8 +181,8 @@ export default function MakeDetail() {
           body: JSON.stringify({
             title,
             content,
-            thumbnailUrl,
             postCategories,
+            thumbnailImageKey,
           }), //送信データをオブジェクト形式で渡す
         });
         alert("送信しました");
@@ -174,7 +215,8 @@ export default function MakeDetail() {
         contentOnChange={handleChangeContent}
         contentDisabled={sending}
         errMsgContent={errMsgContent}
-        thumbnailUrlValue={thumbnailUrl}
+        thumbnailUrlValue={thumbnailImageUrl}
+        oldThumbnailUrl={null}
         thumnailUrlOnChange={handleChangeThumbnailUrl}
         thumbnailUrlDisabled={sending}
         errMsgThumbnail={errMsgThumbnail}

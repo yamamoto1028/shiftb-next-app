@@ -45,7 +45,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       <article className="page-wrapper max-w-[800px] mx-[auto] my-[40px] p-[1rem]">
         <div className="image-container w-768px h-384px">
           <Image
-            src={post.thumbnailUrl}
+            src={`https://hyfeaseyueuhknopsqpk.supabase.co/storage/v1/object/public/post_thumbnail/${post.thumbnailImageKey}`}
             width={100}
             height={100}
             alt={`${post.title}の画像`}

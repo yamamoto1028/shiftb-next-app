@@ -51,7 +51,7 @@ export default function EditCategoryPage({
       }
     };
     getCategoryDetailData();
-  }, []);
+  }, [token, id]);
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCategory(e.target.value);
   };
@@ -81,14 +81,15 @@ export default function EditCategoryPage({
         const data = await fetch(`/api/admin/categories/${id}`, {
           method: "PUT",
           headers: {
-            "contents-Type": "application/json",
+            "Content-Type": "application/json",
             Authorization: token,
           },
           body: JSON.stringify({
             name: category,
           }),
         });
-        console.log(`データを更新しました`, data.json());
+        const res = await data.json();
+        console.log(`データを更新しました`, res);
       } catch (error) {
         console.log(`データ更新中にエラーが発生しました`, error);
       } finally {
@@ -133,6 +134,7 @@ export default function EditCategoryPage({
       onChange={handleChangeInput}
       value={category}
       disabled={sending}
+      className="mt-1 block w-full rounded-md border border-gray-200 p-3"
     >
       <div>
         <AdminUpdateButton onClick={handleUpdateCategory} disabled={sending} />

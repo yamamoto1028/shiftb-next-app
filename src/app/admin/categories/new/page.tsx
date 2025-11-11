@@ -75,6 +75,7 @@ export default function AddCategoriesPage() {
       onChange={handleChangeInputCategory}
       value={name}
       disabled={sending}
+      className="mt-1 block w-full rounded-md border border-gray-200 p-3"
     >
       <AdminCreateButton onClick={handleSubmit} />
     </AdminCategoryForm>

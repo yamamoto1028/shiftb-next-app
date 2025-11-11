@@ -53,11 +53,10 @@ interface CreatePostRequestBody {
   title: string;
   content: string;
   postCategories: {
-    id: number;
-    value: string;
+    value: number;
     label: string;
   }[];
-  thumbnailUrl: string;
+  thumbnailImageKey: string;
 }
 export const POST = async (request: NextRequest) => {
   const body = await request.json();
@@ -65,14 +64,14 @@ export const POST = async (request: NextRequest) => {
     title,
     content,
     postCategories,
-    thumbnailUrl,
+    thumbnailImageKey,
   }: CreatePostRequestBody = body;
   try {
     const postData = await prisma.post.create({
       data: {
         title,
         content,
-        thumbnailUrl,
+        thumbnailImageKey,
       },
     });
     // 記事カテゴリーテーブルの中間テーブル(postCategory)にもレコードをcreateする
@@ -80,9 +79,10 @@ export const POST = async (request: NextRequest) => {
     const postCategory = await prisma.postCategory.createMany({
       data: postCategories.map((category) => ({
         postId: postData.id,
-        categoryId: category.id,
+        categoryId: category.value,
       })),
     });
+    console.log(postCategories);
 
     return NextResponse.json(
       { id: postData.id, category: postCategory, message: "作成しました" },

@@ -1,20 +1,26 @@
+import { forwardRef } from "react";
+
 type AdminInputProps = React.ComponentProps<"input">;
 
-export default function AdminInput({
-  id,
-  onChange,
-  value,
-  disabled,
-}: AdminInputProps) {
-  //propsは単一のオブジェクトとして受け取る必要がある
-  return (
-    <input
-      id={id}
-      type="text"
-      onChange={onChange}
-      value={value}
-      disabled={disabled}
-      className="mt-1 block w-full rounded-md border border-gray-200 p-3"
-    />
-  );
-}
+// forwardRefを使用してrefを転送可能にする
+// 親コンポーネント(AdminPostForm)から渡されたrefを内部のinput要素に接続する
+const AdminInput = forwardRef<HTMLInputElement, AdminInputProps>(
+  ({ id, type, onChange, value, disabled, className }, ref) => {
+    //propsは単一のオブジェクトとして受け取る必要がある
+    return (
+      <input
+        // refを転送して、親から直接DOM要素にアクセス可能にする
+        // これにより、親のhandleClickFile()から.click()メソッドを呼び出せる
+        ref={ref}
+        id={id}
+        type={type}
+        onChange={onChange}
+        value={value}
+        disabled={disabled}
+        className={className}
+      />
+    );
+  }
+);
+
+export default AdminInput;
