@@ -2,12 +2,21 @@
 "use server";
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
 export const GET = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
+  // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
+  const token = request.headers.get("Authorization") ?? "";
+  // supabaseに対してtokenを送る
+  const { error } = await supabase.auth.getUser(token);
+  // 送ったtokenが正しくない場合、errorが返却されるので、クライアントにもエラーを返却
+  if (error) {
+    NextResponse.json({ status: error.message }, { status: 400 });
+  }
   try {
     const { id } = params;
     const categories = await prisma.category.findUnique({

@@ -15,7 +15,6 @@ interface OptionType {
 export default function MakeDetail() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [postCategories, setPostCategories] = useState<OptionType[]>([]); //選択したカテゴリー
   const [apiCategories, setApiCategories] = useState<OptionType[]>([]); //Categoryテーブルに登録されているカテゴリーを取得
   const [sending, setSending] = useState(false); //送信中管理
@@ -137,7 +136,6 @@ export default function MakeDetail() {
     }
     const file = e.target.files[0]; // 選択された画像を取得
     const filePath = `private/${uuidv4()}`; //ファイルパスを指定
-    setThumbnailUrl(file.name);
     // Supabaseに画像をアップロード
     const { data, error } = await supabase.storage
       .from("post_thumbnail") //バケット名を指定
@@ -216,7 +214,6 @@ export default function MakeDetail() {
         contentDisabled={sending}
         errMsgContent={errMsgContent}
         thumbnailUrlValue={thumbnailImageUrl}
-        oldThumbnailUrl={null}
         thumnailUrlOnChange={handleChangeThumbnailUrl}
         thumbnailUrlDisabled={sending}
         errMsgThumbnail={errMsgThumbnail}

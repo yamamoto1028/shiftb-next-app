@@ -6,7 +6,6 @@ import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
 
-// GETという命名にすることで、GETリクエストの時にこの関数が呼ばれる
 export const GET = async (request: NextRequest) => {
   // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
   const token = request.headers.get("Authorization") ?? "";
