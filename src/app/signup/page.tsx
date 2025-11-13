@@ -1,34 +1,40 @@
 "use client";
-
 import { supabase } from "@/utils/supabase"; // 前の工程で作成したファイル
-import { useState } from "react";
+import { useForm } from "react-hook-form";
 
-export default function Page() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `http://localhost:3000/login`,
-      },
-    });
-    if (error) {
-      alert("登録に失敗しました");
-    } else {
-      setEmail("");
-      setPassword("");
-      alert("確認メールを送信しました。");
-    }
-  };
+export default function SignUpPage() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+  console.log(errors);
 
   return (
     <div className="flex justify-center pt-[240px]">
-      <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-[400px]">
+      <form
+        onSubmit={handleSubmit(async (data) => {
+          const { email, password } = data;
+          const { error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `http://localhost:3000/login`,
+            },
+          });
+          if (error) {
+            alert("登録に失敗しました");
+          } else {
+            alert("確認メールを送信しました。");
+          }
+        })}
+        className="space-y-4 w-full max-w-[400px]"
+      >
         <div>
           <label
             htmlFor="email"
@@ -37,15 +43,13 @@ export default function Page() {
             メールアドレス
           </label>
           <input
+            {...register("email", { required: "メールアドレスは必須です。" })}
             type="email"
-            name="email"
             id="email"
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
             placeholder="name@company.com"
-            required
-            onChange={(e) => setEmail(e.target.value)}
-            value={email}
           />
+          <p className="text-red-600">{errors.email?.message}</p>
         </div>
         <div>
           <label
@@ -55,15 +59,16 @@ export default function Page() {
             パスワード
           </label>
           <input
+            {...register("password", {
+              required: "パスワードは必須です。",
+              minLength: { value: 6, message: "パスワードは6桁以上です。" },
+            })}
             type="password"
-            name="password"
             id="password"
             placeholder="••••••••"
             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-            required
-            onChange={(e) => setPassword(e.target.value)}
-            value={password}
           />
+          <p className="text-red-600">{errors.password?.message}</p>
         </div>
 
         <div>
