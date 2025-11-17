@@ -5,7 +5,8 @@ import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 
 interface ApiResponse {
   status: string;
@@ -28,30 +29,34 @@ export default function EditCategoryPage({
   const [sending, setSending] = useState(false);
   const router = useRouter();
   const { token } = useSupabaseSession();
-  useEffect(() => {
-    if (!token) return;
-    const getCategoryDetailData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(`/api/admin/categories/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token,
-          },
-        });
-        const res: ApiResponse = await data.json();
-        if (res.category) {
-          setCategory(res.category.name);
-          setOldCategory(res.category.name);
-        }
-      } catch (error) {
-        console.log(`データ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getCategoryDetailData();
-  }, [token, id]);
+
+  const fetcher = async (): Promise<ApiResponse> => {
+    if (!token) throw new Error("tokenがありません");
+    const res = await fetch(`/api/admin/categories/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+    const data: ApiResponse = await res.json();
+    if (res.status !== 200) {
+      const ErrMsg: { message: string } = await res.json();
+      throw new Error(ErrMsg.message);
+    }
+    return data;
+  };
+  const { data, isLoading } = useSWR(
+    token ? `/api/admin/categories/${id}` : null,
+    fetcher,
+    {
+      onSuccess: (data) => {
+        setCategory(data.category.name);
+        setOldCategory(data.category.name);
+      },
+    }
+  );
+  console.log(data);
+
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCategory(e.target.value);
   };
@@ -121,7 +126,7 @@ export default function EditCategoryPage({
       }
     }
   };
-  if (loading) {
+  if (loading || isLoading) {
     return <>読み込み中・・・</>;
   }
   if (sending) {

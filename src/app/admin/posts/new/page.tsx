@@ -6,6 +6,7 @@ import AdminPostForm from "@/app/admin/_components/AdminPostForm";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import { supabase } from "@/utils/supabase";
 import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
+import useSWR from "swr";
 
 interface OptionType {
   value: number;
@@ -18,7 +19,6 @@ export default function MakeDetail() {
   const [postCategories, setPostCategories] = useState<OptionType[]>([]); //選択したカテゴリー
   const [apiCategories, setApiCategories] = useState<OptionType[]>([]); //Categoryテーブルに登録されているカテゴリーを取得
   const [sending, setSending] = useState(false); //送信中管理
-  const [loading, setLoading] = useState(false); //読み込み中管理
   const [thumbnailImageKey, setThumbnailImageKey] = useState("");
   // Imageタグのsrcにセットする画像URLを持たせるstate
   const [thumbnailImageUrl, setThumbnailImageUrl] = useState<null | string>(
@@ -28,52 +28,65 @@ export default function MakeDetail() {
   const [errMsgTitle, setErrMsgTitle] = useState("");
   const [errMsgContent, setErrMsgContent] = useState("");
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
-
   const { token } = useSupabaseSession();
 
-  useEffect(() => {
-    if (!token) return;
-    const getCategoryData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(
-          "/api/admin/categories",
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: token,
-            },
-          } //←JSON形式のデータ
-        );
-        const { categories }: { categories: { id: number; name: string }[] } =
-          await data.json();
+  const categoryFetcher = async (): Promise<{
+    categories: { id: number; name: string }[];
+  }> => {
+    console.log("1:categoryFetcher開始");
+    if (!token) throw new Error("tokenがありません");
+    const res = await fetch(`/api/admin/categories`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+    if (res.status !== 200) {
+      const ErrMsg: { message: string } = await res.json();
+      throw new Error(ErrMsg.message);
+    }
+    const data: { categories: { id: number; name: string }[] } =
+      await res.json();
+    console.log("2:categoryFetcher終了");
+    return data;
+  };
+  const categoryData = useSWR(
+    token ? `/api/admin/categories` : null,
+    categoryFetcher,
+    {
+      onSuccess: (data) => {
+        console.log("3:dataのuseSWRのonSuccess開始");
         setApiCategories(
-          categories.map((category) => ({
+          data.categories.map((category) => ({
             value: category.id,
             label: category.name,
           }))
         );
-      } catch (error) {
-        console.error(`カテゴリーデータ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getCategoryData();
-  }, [token]);
-  useEffect(() => {
-    if (!thumbnailImageKey) return;
-    // アップロード時に取得した、thumbnailImageKeyを用いて画像のURLを取得
-    const fetcher = async () => {
-      const {
-        data: { publicUrl },
-      } = await supabase.storage
-        .from("post_thumbnail")
-        .getPublicUrl(thumbnailImageKey);
-      setThumbnailImageUrl(publicUrl);
-    };
-    fetcher();
-  }, [thumbnailImageKey]);
+        console.log("4:dataのuseSWRのonSuccess終了");
+      },
+    }
+  );
+  const categoryLoading = categoryData.isLoading;
+  const categoryDataValue = categoryData.data;
+  console.log(categoryDataValue);
+
+  const imageUrlFetcher = async () => {
+    const {
+      data: { publicUrl },
+    } = await supabase.storage
+      .from("post_thumbnail")
+      .getPublicUrl(thumbnailImageKey);
+    setThumbnailImageUrl(publicUrl);
+    return publicUrl;
+  };
+  const imageUrlData = useSWR(thumbnailImageKey, imageUrlFetcher, {
+    onSuccess: (data) => {
+      setThumbnailImageUrl(data);
+    },
+  });
+  const imageLoading = imageUrlData.isLoading;
+  const imageDataValue = imageUrlData.data;
+  console.log(imageDataValue);
 
   const handleCheckInput = () => {
     let hasError = false;
@@ -198,7 +211,7 @@ export default function MakeDetail() {
   if (sending) {
     return <div>送信中・・・</div>;
   }
-  if (loading) {
+  if (categoryLoading || imageLoading) {
     return <div>読み込み中・・・</div>;
   }
   return (

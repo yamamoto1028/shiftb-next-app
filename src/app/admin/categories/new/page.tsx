@@ -1,12 +1,9 @@
 // カテゴリー新規作成ページ
 "use client";
-import AdminHeaderListPageDetails from "@/app/admin/_components/AdminHeaderListPageDetails";
 import "../../../globals.css";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
-import AdminLabel from "@/app/admin/_components/AdminLabel";
-import AdminInput from "@/app/admin/_components/AdminInput";
 import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 

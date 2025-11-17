@@ -1,7 +1,7 @@
 // 管理者_記事編集ページ
 "use client";
 import "../../../globals.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
@@ -9,6 +9,7 @@ import AdminPostForm from "@/app/admin/_components/AdminPostForm";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import { supabase } from "@/utils/supabase";
 import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
+import useSWR from "swr";
 
 interface OptionType {
   value: number;
@@ -28,6 +29,7 @@ interface CategoryResponseType {
 interface ApiResponse {
   status: string;
   post: Post;
+  thumbnailImageUrl: string;
 }
 interface Post {
   id: string;
@@ -60,7 +62,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  // const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [thumbnailImageKey, setThumbnailImageKey] = useState("");
   // Imageタグのsrcにセットする画像URLを持たせるstate
   const [thumbnailImageUrl, setThumbnailImageUrl] = useState<string>("");
@@ -71,82 +73,86 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const [errMsgTitle, setErrMsgTitle] = useState("");
   const [errMsgContent, setErrMsgContent] = useState("");
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
-
   const { token } = useSupabaseSession();
 
-  useEffect(() => {
-    if (!token) return;
-    const getArticleDetailData = async () => {
-      try {
-        setLoading(true);
-        // 記事のデータ取得
-        const data = await fetch(`/api/admin/posts/${id}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token,
-          },
-        });
-        const res: ApiResponse = await data.json();
-        if (res) {
-          const {
-            data: { publicUrl },
-          } = await supabase.storage
-            .from("post_thumbnail")
-            .getPublicUrl(res.post.thumbnailImageKey);
-          setPost(res.post);
-          setTitle(res.post.title);
-          setContent(res.post.content);
-          setThumbnailImageKey(res.post.thumbnailImageKey);
-          setThumbnailImageUrl(publicUrl);
-          const categories: PostCategory[] = res.post.postCategories;
-          setPostCategories(
-            categories.map((postCategory) => {
-              const {
-                category: { id, name },
-              } = postCategory;
-              return { value: id, label: name };
-            })
-          );
-          console.log(`取得した記事データ：`);
-          console.log(res);
-        } else {
-          throw new Error("記事が見つかりません");
-        }
-        // カテゴリーのデータ取得
-        const categoryData = await fetch("/api/admin/categories", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token,
-          },
-        });
-        const { categories }: CategoryResponseType = await categoryData.json();
-        console.log(categories);
+  // 記事のデータ取得
+  const postFetcher = async (): Promise<ApiResponse> => {
+    console.log("1:postFetcher開始");
+    if (!token) throw new Error("tokenがありません");
+    const res = await fetch(`/api/admin/posts/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+    if (res.status !== 200) {
+      const ErrMsg: { message: string } = await res.json();
+      throw new Error(ErrMsg.message);
+    }
+    const data: ApiResponse = await res.json();
+    console.log("2:postFetcher終了");
+    return data;
+  };
+  const postData = useSWR(
+    token ? `/api/admin/posts/${id}` : null, //tokenがセットされていたらエンドポイントにfetchとすることでcategoryDataと並列実行
+    postFetcher,
+    {
+      onSuccess: (data) => {
+        console.log("3:postDataのuseSWRのonSuccess開始");
+        setPost(data.post);
+        setTitle(data.post.title);
+        setContent(data.post.content);
+        setThumbnailImageKey(data.post.thumbnailImageKey);
+        setThumbnailImageUrl(data.thumbnailImageUrl);
+        const categories = data.post.postCategories;
+        setPostCategories(
+          categories.map((postCategory) => {
+            const {
+              category: { id, name },
+            } = postCategory;
+            console.log("4:postDataのuseSWRのonSuccess終了");
+            return { value: id, label: name };
+          })
+        );
+      },
+    }
+  );
+  const postLoading = postData.isLoading;
+
+  // カテゴリーのデータ取得
+  const categoryFetcher = async (): Promise<CategoryResponseType> => {
+    console.log("5:categoryFetcher開始");
+    if (!token) throw new Error("tokenがありません");
+    const res = await fetch(`/api/admin/categories`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+    if (res.status !== 200) {
+      const ErrMsg = await res.json();
+      throw new Error(ErrMsg.message);
+    }
+    const data: CategoryResponseType = await res.json();
+    console.log(data);
+    console.log("6:categoryFetcher終了");
+    return data;
+  };
+  const categoryData = useSWR(
+    token ? `/api/admin/categories` : null,
+    categoryFetcher,
+    {
+      onSuccess: (data) => {
+        const { categories } = data;
         const result = categories.map((category) => ({
           value: category.id,
           label: category.name,
         }));
         setApiCategories(result);
-      } catch (error) {
-        console.log(`記事詳細データ取得中にエラーが発生しました:`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getArticleDetailData();
-  }, [token, id]);
-  useEffect(() => {
-    if (!thumbnailImageKey) return;
-    // アップロード時に取得した、thumbnailImageKeyを用いて画像のURLを取得
-    const fetcher = async () => {
-      const {
-        data: { publicUrl },
-      } = await supabase.storage
-        .from("post_thumbnail")
-        .getPublicUrl(thumbnailImageKey);
-      setThumbnailImageUrl(publicUrl);
-    };
-    fetcher();
-  }, [thumbnailImageKey]);
+      },
+    }
+  );
+  const categoryLoading = categoryData.isLoading;
 
   const handleChangeTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -295,11 +301,14 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   if (sending) {
     return <div>送信中・・・</div>;
   }
-  if (loading) {
+  if (loading || postLoading || categoryLoading) {
+    console.log(
+      `loading:${loading}, postLoading:${postLoading}, categoryLoading:${categoryLoading}`
+    );
     return <div>読み込み中・・・</div>;
   }
   if (!post) {
-    return <div className="undefinedArticle">記事がありません</div>;
+    return <div>記事がありません</div>;
   }
   return (
     <AdminPostForm

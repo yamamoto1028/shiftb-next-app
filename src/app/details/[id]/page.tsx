@@ -1,40 +1,36 @@
 "use client";
 import parse from "html-react-parser";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { WithPostCategories } from "@/app/_types/types";
+import useSWR from "swr";
 
 interface ApiResponse {
   status: string;
   post: WithPostCategories;
 }
+
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
   const [post, setPost] = useState<WithPostCategories | null>(null);
-  const [loading, setLoading] = useState(false);
   const { id } = params;
-  useEffect(() => {
-    const getArticleDetailData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(`/api/posts/${id}`);
-        const { post }: ApiResponse = await data.json();
-        console.log(post);
-        if (post) {
-          setPost(post);
-        } else {
-          throw new Error("記事が見つかりません");
-        }
-      } catch (error) {
-        console.error(`記事詳細データ取得中にエラーが発生しました:`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getArticleDetailData();
-  }, [id]);
+  const fetcher = async (): Promise<ApiResponse> => {
+    const res = await fetch(`/api/posts/${id}`);
+    if (res.status !== 200) {
+      const ErrMsg: { message: string } = await res.json();
+      throw new Error(ErrMsg.message);
+    }
+    const data: ApiResponse = await res.json();
+    return data;
+  };
+  const { data, isLoading } = useSWR(`/api/posts/${id}`, fetcher, {
+    onSuccess: (data) => {
+      setPost(data.post ?? []);
+    },
+  });
+  console.log(data);
 
-  if (loading) {
+  if (isLoading) {
     return <div>読み込み中・・・</div>;
   }
   if (!post) {

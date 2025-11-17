@@ -41,7 +41,17 @@ export const GET = async (
       },
     });
 
-    return NextResponse.json({ status: "OK", post: post }, { status: 200 });
+    // サーバー側で画像URLを取得してレスポンスに含める
+    const {
+      data: { publicUrl: thumbnailImageUrl },
+    } = supabase.storage
+      .from("post_thumbnail")
+      .getPublicUrl(post?.thumbnailImageKey || "");
+
+    return NextResponse.json(
+      { status: "OK", post: post, thumbnailImageUrl: thumbnailImageUrl },
+      { status: 200 }
+    );
   } catch (error) {
     if (error instanceof Error)
       return NextResponse.json({ status: error.message }, { status: 400 });

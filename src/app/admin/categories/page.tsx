@@ -2,40 +2,49 @@
 "use client";
 import "../../globals.css";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Category } from "@prisma/client";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
+import useSWR from "swr";
+
+interface ApiResponse {
+  status: string;
+  categories: Category[];
+}
 
 export default function CategoryList() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
   const { token } = useSupabaseSession();
 
-  useEffect(() => {
-    if (!token) return;
-    const getCategoryData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch("/api/admin/categories", {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token,
-          },
-        });
-        const { categories }: { categories: Category[] } = await data.json();
-        console.log(categories);
-        setCategories([...categories]);
-      } catch (error) {
-        console.error(`カテゴリーデータ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getCategoryData();
-  }, [token]);
+  const fetcher = async (): Promise<Category[]> => {
+    if (!token) throw new Error("tokenがありません");
+    const res = await fetch(`/api/admin/categories`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+    });
+    const data: ApiResponse = await res.json();
+    if (res.status !== 200) {
+      const ErrMsg: { message: string } = await res.json();
+      throw new Error(ErrMsg.message);
+    }
+    const resData: Category[] = data.categories;
+    return resData;
+  };
+  const { data, isLoading } = useSWR(
+    token ? `/api/admin/categories` : null, //tokenがセットされていたらエンドポイントにfetchとすると無駄なfetchを防げるのでレスポンス良し
+    fetcher,
+    {
+      onSuccess: (data) => {
+        setCategories(data);
+      },
+    }
+  );
+  console.log(data);
 
-  if (loading) {
+  if (isLoading) {
     return <div>読み込み中・・・</div>;
   }
 

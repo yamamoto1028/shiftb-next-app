@@ -2,37 +2,35 @@
 import "./globals.css";
 import Link from "next/link";
 import parse from "html-react-parser";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { WithPostCategories } from "./_types/types";
+import useSWR from "swr";
 
-interface ApiResponce {
+interface ApiResponse {
   status: string;
   posts: WithPostCategories[];
 }
+const fetcher = async (): Promise<ApiResponse> => {
+  const res = await fetch("/api/posts");
+  if (res.status !== 200) {
+    const ErrMsg: { message: string } = await res.json();
+    throw new Error(ErrMsg.message);
+  }
+  const data: ApiResponse = await res.json();
+  return data;
+};
+
 export default function ArticleList() {
   const [posts, setPosts] = useState<WithPostCategories[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading } = useSWR("/api/posts", fetcher, {
+    onSuccess: (data) => {
+      //他で状態管理したいならonSuccess内でセット
+      setPosts(data.posts ?? []);
+    },
+  });
+  console.log(data);
 
-  useEffect(() => {
-    const getArticleData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(
-          //api/postsを呼び出すとその配下にあるroute.tsのGETメソッドが実行される
-          "/api/posts" //←JSON形式のデータ
-        );
-        const { posts }: ApiResponce = await data.json();
-        setPosts(posts);
-      } catch (error) {
-        console.error(`記事データ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getArticleData();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return <div>読み込み中・・・</div>;
   }
 
