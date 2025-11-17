@@ -1,6 +1,6 @@
 "use client";
 import "../../../globals.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
 import AdminPostForm from "@/app/admin/_components/AdminPostForm";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";

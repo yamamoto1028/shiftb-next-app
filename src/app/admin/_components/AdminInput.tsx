@@ -22,5 +22,6 @@ const AdminInput = forwardRef<HTMLInputElement, AdminInputProps>(
     );
   }
 );
+AdminInput.displayName = "AdminInput";
 
 export default AdminInput;
