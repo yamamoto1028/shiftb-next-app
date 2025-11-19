@@ -7,6 +7,8 @@ import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import { supabase } from "@/utils/supabase";
 import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
 import useSWR from "swr";
+import { useFetch } from "@/app/_hooks/useFetch";
+import { Category } from "@prisma/client";
 
 interface OptionType {
   value: number;
@@ -30,42 +32,23 @@ export default function MakeDetail() {
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
   const { token } = useSupabaseSession();
 
-  const categoryFetcher = async (): Promise<{
-    categories: { id: number; name: string }[];
-  }> => {
-    console.log("1:categoryFetcher開始");
-    if (!token) throw new Error("tokenがありません");
-    const res = await fetch(`/api/admin/categories`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    });
-    if (res.status !== 200) {
-      const ErrMsg: { message: string } = await res.json();
-      throw new Error(ErrMsg.message);
-    }
-    const data: { categories: { id: number; name: string }[] } =
-      await res.json();
-    console.log("2:categoryFetcher終了");
-    return data;
-  };
-  const categoryData = useSWR(
-    token ? `/api/admin/categories` : null,
-    categoryFetcher,
-    {
-      onSuccess: (data) => {
-        console.log("3:dataのuseSWRのonSuccess開始");
-        setApiCategories(
-          data.categories.map((category) => ({
-            value: category.id,
-            label: category.name,
-          }))
-        );
-        console.log("4:dataのuseSWRのonSuccess終了");
-      },
-    }
-  );
+  const categoryData = useFetch<{ categories: Category[] }>({
+    endPoint: `/api/admin/categories`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    onSuccess: (data) => {
+      console.log("3:dataのuseSWRのonSuccess開始");
+      const categories: Category[] = data.categories;
+      setApiCategories(
+        categories.map((category) => ({
+          value: category.id,
+          label: category.name,
+        }))
+      );
+    },
+  });
   const categoryLoading = categoryData.isLoading;
   const categoryDataValue = categoryData.data;
   console.log(categoryDataValue);

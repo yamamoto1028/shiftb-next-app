@@ -3,7 +3,7 @@ import parse from "html-react-parser";
 import { useState } from "react";
 import Image from "next/image";
 import { WithPostCategories } from "@/app/_types/types";
-import useSWR from "swr";
+import { useFetch } from "@/app/_hooks/useFetch";
 
 interface ApiResponse {
   status: string;
@@ -14,18 +14,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
   const [post, setPost] = useState<WithPostCategories | null>(null);
   const { id } = params;
-  const fetcher = async (): Promise<ApiResponse> => {
-    const res = await fetch(`/api/posts/${id}`);
-    if (res.status !== 200) {
-      const ErrMsg: { message: string } = await res.json();
-      throw new Error(ErrMsg.message);
-    }
-    const data: ApiResponse = await res.json();
-    return data;
-  };
-  const { data, isLoading } = useSWR(`/api/posts/${id}`, fetcher, {
+  const { data, isLoading } = useFetch<ApiResponse>({
+    endPoint: `/api/posts/${id}`,
     onSuccess: (data) => {
-      setPost(data.post ?? []);
+      setPost(data.post);
     },
   });
   console.log(data);

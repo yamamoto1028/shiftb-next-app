@@ -4,28 +4,19 @@ import Link from "next/link";
 import parse from "html-react-parser";
 import { useState } from "react";
 import { WithPostCategories } from "./_types/types";
-import useSWR from "swr";
+import { useFetch } from "./_hooks/useFetch";
 
 interface ApiResponse {
   status: string;
   posts: WithPostCategories[];
 }
-const fetcher = async (): Promise<ApiResponse> => {
-  const res = await fetch("/api/posts");
-  if (res.status !== 200) {
-    const ErrMsg: { message: string } = await res.json();
-    throw new Error(ErrMsg.message);
-  }
-  const data: ApiResponse = await res.json();
-  return data;
-};
 
 export default function ArticleList() {
   const [posts, setPosts] = useState<WithPostCategories[]>([]);
-  const { data, isLoading } = useSWR("/api/posts", fetcher, {
+  const { data, isLoading } = useFetch<ApiResponse>({
+    endPoint: "/api/posts",
     onSuccess: (data) => {
-      //他で状態管理したいならonSuccess内でセット
-      setPosts(data.posts ?? []);
+      setPosts(data.posts);
     },
   });
   console.log(data);

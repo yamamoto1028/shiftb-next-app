@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Category } from "@prisma/client";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
-import useSWR from "swr";
+import { useFetch } from "@/app/_hooks/useFetch";
 
 interface ApiResponse {
   status: string;
@@ -17,31 +17,16 @@ export default function CategoryList() {
   const [categories, setCategories] = useState<Category[]>([]);
   const { token } = useSupabaseSession();
 
-  const fetcher = async (): Promise<Category[]> => {
-    if (!token) throw new Error("tokenがありません");
-    const res = await fetch(`/api/admin/categories`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    });
-    const data: ApiResponse = await res.json();
-    if (res.status !== 200) {
-      const ErrMsg: { message: string } = await res.json();
-      throw new Error(ErrMsg.message);
-    }
-    const resData: Category[] = data.categories;
-    return resData;
-  };
-  const { data, isLoading } = useSWR(
-    token ? `/api/admin/categories` : null, //tokenがセットされていたらエンドポイントにfetchとすると無駄なfetchを防げるのでレスポンス良し
-    fetcher,
-    {
-      onSuccess: (data) => {
-        setCategories(data);
-      },
-    }
-  );
+  const { data, isLoading } = useFetch<ApiResponse>({
+    endPoint: `/api/admin/categories`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    onSuccess: (data) => {
+      setCategories(data.categories);
+    },
+  });
   console.log(data);
 
   if (isLoading) {

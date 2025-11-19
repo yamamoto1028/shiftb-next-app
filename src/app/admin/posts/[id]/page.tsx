@@ -9,7 +9,7 @@ import AdminPostForm from "@/app/admin/_components/AdminPostForm";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import { supabase } from "@/utils/supabase";
 import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
-import useSWR from "swr";
+import { useFetch } from "@/app/_hooks/useFetch";
 
 interface OptionType {
   value: number;
@@ -76,83 +76,50 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const { token } = useSupabaseSession();
 
   // 記事のデータ取得
-  const postFetcher = async (): Promise<ApiResponse> => {
-    console.log("1:postFetcher開始");
-    if (!token) throw new Error("tokenがありません");
-    const res = await fetch(`/api/admin/posts/${id}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    });
-    if (res.status !== 200) {
-      const ErrMsg: { message: string } = await res.json();
-      throw new Error(ErrMsg.message);
-    }
-    const data: ApiResponse = await res.json();
-    console.log("2:postFetcher終了");
-    return data;
-  };
-  const postData = useSWR(
-    token ? `/api/admin/posts/${id}` : null, //tokenがセットされていたらエンドポイントにfetchとすることでcategoryDataと並列実行
-    postFetcher,
-    {
-      onSuccess: (data) => {
-        console.log("3:postDataのuseSWRのonSuccess開始");
-        setPost(data.post);
-        setTitle(data.post.title);
-        setContent(data.post.content);
-        setThumbnailImageKey(data.post.thumbnailImageKey);
-        setThumbnailImageUrl(data.thumbnailImageUrl);
-        const categories = data.post.postCategories;
-        setPostCategories(
-          categories.map((postCategory) => {
-            const {
-              category: { id, name },
-            } = postCategory;
-            console.log("4:postDataのuseSWRのonSuccess終了");
-            return { value: id, label: name };
-          })
-        );
-      },
-    }
-  );
+  const postData = useFetch<ApiResponse>({
+    endPoint: `/api/admin/posts/${id}`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    onSuccess: (data) => {
+      setPost(data.post);
+      setTitle(data.post.title);
+      setContent(data.post.content);
+      setThumbnailImageKey(data.post.thumbnailImageKey);
+      setThumbnailImageUrl(data.thumbnailImageUrl);
+      const categories: PostCategory[] = data.post.postCategories;
+      setPostCategories(
+        categories.map((postCategory) => {
+          const {
+            category: { id, name },
+          } = postCategory;
+          return { value: id, label: name };
+        })
+      );
+    },
+  });
   const postLoading = postData.isLoading;
+  console.log(postData.data);
 
   // カテゴリーのデータ取得
-  const categoryFetcher = async (): Promise<CategoryResponseType> => {
-    console.log("5:categoryFetcher開始");
-    if (!token) throw new Error("tokenがありません");
-    const res = await fetch(`/api/admin/categories`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    });
-    if (res.status !== 200) {
-      const ErrMsg = await res.json();
-      throw new Error(ErrMsg.message);
-    }
-    const data: CategoryResponseType = await res.json();
-    console.log(data);
-    console.log("6:categoryFetcher終了");
-    return data;
-  };
-  const categoryData = useSWR(
-    token ? `/api/admin/categories` : null,
-    categoryFetcher,
-    {
-      onSuccess: (data) => {
-        const { categories } = data;
-        const result = categories.map((category) => ({
-          value: category.id,
-          label: category.name,
-        }));
-        setApiCategories(result);
-      },
-    }
-  );
+  const categoryData = useFetch<CategoryResponseType>({
+    endPoint: `/api/admin/categories`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    onSuccess: (data) => {
+      const { categories }: CategoryResponseType = data;
+      const result = categories.map((category) => ({
+        value: category.id,
+        label: category.name,
+      }));
+      setApiCategories(result);
+    },
+  });
   const categoryLoading = categoryData.isLoading;
+  console.log(categoryData.data);
 
   const handleChangeTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -302,9 +269,6 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     return <div>送信中・・・</div>;
   }
   if (loading || postLoading || categoryLoading) {
-    console.log(
-      `loading:${loading}, postLoading:${postLoading}, categoryLoading:${categoryLoading}`
-    );
     return <div>読み込み中・・・</div>;
   }
   if (!post) {

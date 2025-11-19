@@ -1,12 +1,12 @@
 // カテゴリー編集ページ
 "use client";
+import { useFetch } from "@/app/_hooks/useFetch";
 import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import useSWR from "swr";
 
 interface ApiResponse {
   status: string;
@@ -30,31 +30,17 @@ export default function EditCategoryPage({
   const router = useRouter();
   const { token } = useSupabaseSession();
 
-  const fetcher = async (): Promise<ApiResponse> => {
-    if (!token) throw new Error("tokenがありません");
-    const res = await fetch(`/api/admin/categories/${id}`, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-    });
-    const data: ApiResponse = await res.json();
-    if (res.status !== 200) {
-      const ErrMsg: { message: string } = await res.json();
-      throw new Error(ErrMsg.message);
-    }
-    return data;
-  };
-  const { data, isLoading } = useSWR(
-    token ? `/api/admin/categories/${id}` : null,
-    fetcher,
-    {
-      onSuccess: (data) => {
-        setCategory(data.category.name);
-        setOldCategory(data.category.name);
-      },
-    }
-  );
+  const { data, isLoading } = useFetch<ApiResponse>({
+    endPoint: `/api/admin/categories/${id}`,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token,
+    },
+    onSuccess: (data) => {
+      setCategory(data.category.name);
+      setOldCategory(data.category.name);
+    },
+  });
   console.log(data);
 
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
