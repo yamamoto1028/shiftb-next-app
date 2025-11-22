@@ -10,6 +10,7 @@ interface AdminCategoryFormProps {
   disabled: boolean;
   className: string;
   children: JSX.Element;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
 }
 
 export default function AdminCategoryForm(props: AdminCategoryFormProps) {
@@ -17,7 +18,7 @@ export default function AdminCategoryForm(props: AdminCategoryFormProps) {
     <div className="home-container p-4 px-[1rem] w-[95%]">
       <div className="px-4">
         <AdminHeaderListPageDetails title={props.title} />
-        <form method="POST" className="mt-3">
+        <form onSubmit={props.onSubmit} method="POST" className="mt-3">
           <div className="flex flex-col">
             <AdminLabel htmlFor="categiryName">{props.label}</AdminLabel>
             <AdminInput

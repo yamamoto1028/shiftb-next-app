@@ -32,6 +32,7 @@ interface AdminPostFormProps {
     actionMeta: ActionMeta<OptionType>
   ) => void;
   categoryIsDisabled: boolean;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   children: JSX.Element;
 }
 
@@ -43,7 +44,7 @@ export default function AdminPostForm(props: AdminPostFormProps) {
   };
   return (
     <div className="home-container p-4 w-[95%]">
-      <form method="post">
+      <form onSubmit={props.onSubmit} method="post">
         <div className="mt-4 px-4">
           <AdminHeaderListPageDetails title={props.title} />
           <div className="flex flex-col">

@@ -177,7 +177,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     }
     return hasError;
   };
-  const handleUpdate = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     //記事更新処理
     try {
       if (!token) return;
@@ -279,9 +279,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         setPostCategories(selected as OptionType[]);
       }}
       categoryIsDisabled={sending}
+      onSubmit={handleUpdate}
     >
       <div>
-        <AdminUpdateButton onClick={handleUpdate} disabled={sending} />
+        <AdminUpdateButton disabled={sending} />
         <AdminDeleteButton onClick={handleDelete} disabled={sending} />
       </div>
     </AdminPostForm>

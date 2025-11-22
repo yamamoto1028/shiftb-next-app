@@ -45,9 +45,7 @@ export default function EditCategoryPage({
   };
 
   // 更新処理
-  const handleUpdateCategory = async (
-    e: React.FormEvent<HTMLButtonElement>
-  ) => {
+  const handleUpdateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!token) return;
     if (!category) {
@@ -123,9 +121,10 @@ export default function EditCategoryPage({
       value={category}
       disabled={sending}
       className="mt-1 block w-full rounded-md border border-gray-200 p-3"
+      onSubmit={handleUpdateCategory}
     >
       <div>
-        <AdminUpdateButton onClick={handleUpdateCategory} disabled={sending} />
+        <AdminUpdateButton disabled={sending} />
         <AdminDeleteButton onClick={handleDeleteCategory} disabled={sending} />
       </div>
     </AdminCategoryForm>

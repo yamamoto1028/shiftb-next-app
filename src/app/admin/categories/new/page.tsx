@@ -29,7 +29,7 @@ export default function AddCategoriesPage() {
     setName("");
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!token) return;
     try {
@@ -73,8 +73,9 @@ export default function AddCategoriesPage() {
       value={name}
       disabled={sending}
       className="mt-1 block w-full rounded-md border border-gray-200 p-3"
+      onSubmit={handleSubmit}
     >
-      <AdminCreateButton onClick={handleSubmit} />
+      <AdminCreateButton disabled={sending} />
     </AdminCategoryForm>
   );
 }

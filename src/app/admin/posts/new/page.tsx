@@ -143,7 +143,7 @@ export default function MakeDetail() {
     setPostCategories([]);
   };
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
       const hasError = handleCheckInput(); //実行の結果を変数に格納することで「handleCheckInput」の実行結果を再利用可能になる。
@@ -210,8 +210,9 @@ export default function MakeDetail() {
           setPostCategories(selected as OptionType[]);
         }}
         categoryIsDisabled={sending}
+        onSubmit={handleSubmit}
       >
-        <AdminCreateButton onClick={handleSubmit} disabled={sending} />
+        <AdminCreateButton disabled={sending} />
       </AdminPostForm>
     </>
   );
