@@ -2,10 +2,8 @@
 "use client";
 import "../../globals.css";
 import Link from "next/link";
-import { useState } from "react";
 import { Category } from "@prisma/client";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
-import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import { useFetch } from "@/app/_hooks/useFetch";
 
 interface ApiResponse {
@@ -14,26 +12,19 @@ interface ApiResponse {
 }
 
 export default function CategoryList() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const { token } = useSupabaseSession();
-
-  const { data, isLoading } = useFetch<ApiResponse>({
+  const { data, error } = useFetch<ApiResponse>({
     endPoint: `/api/admin/categories`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token,
-    },
-    onSuccess: (data) => {
-      setCategories(data.categories);
-    },
   });
   console.log(data);
 
-  if (isLoading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
 
-  if (categories.length === 0) {
+  if (data.categories.length === 0) {
     return (
       <div>
         <div>データがありません</div>
@@ -54,7 +45,7 @@ export default function CategoryList() {
           href={`/admin/categories/new`}
         ></AdminHeaderListPage>
         <div className="mt-8">
-          {categories.map((category) => (
+          {data.categories.map((category) => (
             <Link
               href={`/admin/categories/${category.id}`}
               key={category.id}

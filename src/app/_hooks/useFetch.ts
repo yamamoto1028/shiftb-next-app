@@ -1,9 +1,8 @@
 import useSWR from "swr";
-interface fetchPropsType<T = unknown> {
+import { useSupabaseSession } from "./useSupabaseSession";
+interface fetchPropsType {
   //anyは許容しない設定にしているためunknownで
   endPoint: string;
-  headers?: { "Content-Type": string; Authorization: string | null };
-  onSuccess?: (data: T) => void;
 }
 interface FetchError {
   message: string;
@@ -15,13 +14,24 @@ export interface CommonResponseType<T = unknown> {
   data: T | undefined;
   error: FetchError | null;
   isLoading: boolean;
+  mutate: () => Promise<T | undefined>;
 }
 // fetcherとuseSWRを一つにまとめたカスタムフックの作成
-export const useFetch = <T>(
-  props: fetchPropsType<T>
-): CommonResponseType<T> => {
-  const fetcher = async () => {
-    const res = await fetch(props.endPoint);
+export const useFetch = <T>(props: fetchPropsType): CommonResponseType<T> => {
+  const { token } = useSupabaseSession();
+
+  const fetcher = async (): Promise<T> => {
+    const headers: Record<string, string> = {
+      //指定した型のプロパティと値のペアなら追加できる型
+      "Content-Type": "application/json",
+    };
+    // tokenがある場合はAuthorizationヘッダーに追加
+    if (token) {
+      headers.Authorization = token;
+    }
+    const res = await fetch(props.endPoint, {
+      headers,
+    });
     if (res.status !== 200) {
       const ErrMsg: { message: string } = await res.json();
       throw new Error(ErrMsg.message);
@@ -29,10 +39,6 @@ export const useFetch = <T>(
     const data = await res.json();
     return data;
   };
-  const { data, error, isLoading } = useSWR<T>(props.endPoint, fetcher, {
-    onSuccess: (data) => {
-      props.onSuccess?.(data); //呼び出し先で関数決めれる(これもpropsで渡せる)
-    },
-  });
-  return { data, error, isLoading };
+
+  return useSWR<T>(props.endPoint, fetcher); //全部返しといて呼び出し側で欲しいもの取る
 };

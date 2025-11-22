@@ -2,10 +2,8 @@
 // 管理者_記事一覧ページ
 import "../../globals.css";
 import Link from "next/link";
-import { useState } from "react";
 import { WithPostCategories } from "@/app/_types/types";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
-import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import { useFetch } from "@/app/_hooks/useFetch";
 
 interface ApiResponse {
@@ -13,26 +11,17 @@ interface ApiResponse {
   posts: WithPostCategories[];
 }
 export default function ArticleList() {
-  const [posts, setPosts] = useState<WithPostCategories[]>([]);
-  const { token } = useSupabaseSession();
-
-  const { data, isLoading } = useFetch<ApiResponse>({
+  const { data, error } = useFetch<ApiResponse>({
     endPoint: `/api/admin/posts`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token,
-    },
-    onSuccess: (data) => {
-      setPosts(data.posts ?? []);
-    },
   });
   console.log(data);
-
-  if (isLoading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
-
-  if (posts.length === 0) {
+  if (data.posts.length === 0) {
     return (
       <div>
         <div>記事がありません</div>
@@ -48,12 +37,9 @@ export default function ArticleList() {
   return (
     <>
       <main className="home-container  p-4">
-        <AdminHeaderListPage
-          title={"記事一覧"}
-          href={`/admin/posts/new`}
-        ></AdminHeaderListPage>
+        <AdminHeaderListPage title={"記事一覧"} href={`/admin/posts/new`} />
         <div className="mt-8">
-          {posts.map((post) => (
+          {data.posts.map((post) => (
             <Link
               href={`/admin/posts/${post.id}`}
               key={post.id}

@@ -6,7 +6,7 @@ import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ApiResponse {
   status: string;
@@ -24,31 +24,25 @@ export default function EditCategoryPage({
 }) {
   const { id } = params;
   const [category, setCategory] = useState("");
-  const [oldCategory, setOldCategory] = useState("");
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const router = useRouter();
   const { token } = useSupabaseSession();
-
-  const { data, isLoading } = useFetch<ApiResponse>({
+  const {
+    data: categoryData,
+    error,
+    mutate,
+  } = useFetch<ApiResponse>({
     endPoint: `/api/admin/categories/${id}`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token,
-    },
-    onSuccess: (data) => {
-      setCategory(data.category.name);
-      setOldCategory(data.category.name);
-    },
   });
-  console.log(data);
+  console.log(categoryData);
+  useEffect(() => {
+    if (!categoryData) return;
+    setCategory(categoryData.category.name); //マウント時とresData更新時にのみAPIから取得したカテゴリー名をセット
+  }, [categoryData]);
 
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCategory(e.target.value);
   };
-  if (loading) {
-    return <div>読み込み中・・・</div>;
-  }
 
   // 更新処理
   const handleUpdateCategory = async (
@@ -62,14 +56,14 @@ export default function EditCategoryPage({
       );
       return;
     }
-    if (oldCategory === category) {
+    if (categoryData?.category.name === category) {
       alert("変更されていません");
       return;
     }
     if (confirm(`更新しますか？`)) {
       try {
         setSending(true);
-        const data = await fetch(`/api/admin/categories/${id}`, {
+        await fetch(`/api/admin/categories/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -79,8 +73,8 @@ export default function EditCategoryPage({
             name: category,
           }),
         });
-        const res = await data.json();
-        console.log(`データを更新しました`, res);
+        await mutate(); //使うならここ？finally↓のrouter.push()で再描画されるから本来は不要そう
+        console.log(`データを更新しました`);
       } catch (error) {
         console.log(`データ更新中にエラーが発生しました`, error);
       } finally {
@@ -97,7 +91,7 @@ export default function EditCategoryPage({
     e.preventDefault();
     if (confirm(`${category}のデータを削除しますか？`)) {
       try {
-        setLoading(true);
+        setSending(true);
         const data = await fetch(`/api/admin/categories/${id}`, {
           method: "DELETE",
         });
@@ -107,13 +101,16 @@ export default function EditCategoryPage({
       } catch (error) {
         console.log(`データ削除中にエラーが発生しました`, error);
       } finally {
-        setLoading(false);
+        setSending(false);
         router.push("/admin/categories");
       }
     }
   };
-  if (loading || isLoading) {
-    return <>読み込み中・・・</>;
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!categoryData) {
+    return <div>読み込み中・・・</div>;
   }
   if (sending) {
     return <>送信中・・・</>;

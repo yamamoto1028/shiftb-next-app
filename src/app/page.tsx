@@ -2,7 +2,6 @@
 import "./globals.css";
 import Link from "next/link";
 import parse from "html-react-parser";
-import { useState } from "react";
 import { WithPostCategories } from "./_types/types";
 import { useFetch } from "./_hooks/useFetch";
 
@@ -12,27 +11,25 @@ interface ApiResponse {
 }
 
 export default function ArticleList() {
-  const [posts, setPosts] = useState<WithPostCategories[]>([]);
-  const { data, isLoading } = useFetch<ApiResponse>({
+  const { data, error } = useFetch<ApiResponse>({
     endPoint: "/api/posts",
-    onSuccess: (data) => {
-      setPosts(data.posts);
-    },
   });
   console.log(data);
 
-  if (isLoading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
-
-  if (posts.length === 0) {
+  if (data.posts.length === 0) {
     return <div>データなし</div>;
   }
 
   return (
     <>
       <main className="home-container max-w-[800px] mx-auto my-[40px] px-[1rem] overflow-auto">
-        {posts.map((post) => (
+        {data.posts.map((post) => (
           <Link href={`/details/${post.id}`} key={post.id}>
             <article className="border border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer">
               <div className="post-info flex justify-between">

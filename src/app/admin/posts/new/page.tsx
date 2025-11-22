@@ -19,7 +19,6 @@ export default function MakeDetail() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [postCategories, setPostCategories] = useState<OptionType[]>([]); //選択したカテゴリー
-  const [apiCategories, setApiCategories] = useState<OptionType[]>([]); //Categoryテーブルに登録されているカテゴリーを取得
   const [sending, setSending] = useState(false); //送信中管理
   const [thumbnailImageKey, setThumbnailImageKey] = useState("");
   // Imageタグのsrcにセットする画像URLを持たせるstate
@@ -32,26 +31,9 @@ export default function MakeDetail() {
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
   const { token } = useSupabaseSession();
 
-  const categoryData = useFetch<{ categories: Category[] }>({
+  const { data, error } = useFetch<{ categories: Category[] }>({
     endPoint: `/api/admin/categories`,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: token,
-    },
-    onSuccess: (data) => {
-      console.log("3:dataのuseSWRのonSuccess開始");
-      const categories: Category[] = data.categories;
-      setApiCategories(
-        categories.map((category) => ({
-          value: category.id,
-          label: category.name,
-        }))
-      );
-    },
   });
-  const categoryLoading = categoryData.isLoading;
-  const categoryDataValue = categoryData.data;
-  console.log(categoryDataValue);
 
   const imageUrlFetcher = async () => {
     const {
@@ -62,14 +44,20 @@ export default function MakeDetail() {
     setThumbnailImageUrl(publicUrl);
     return publicUrl;
   };
-  const imageUrlData = useSWR(thumbnailImageKey, imageUrlFetcher, {
+  useSWR(thumbnailImageKey, imageUrlFetcher, {
     onSuccess: (data) => {
       setThumbnailImageUrl(data);
     },
   });
-  const imageLoading = imageUrlData.isLoading;
-  const imageDataValue = imageUrlData.data;
-  console.log(imageDataValue);
+
+  const categories = data?.categories;
+  if (!categories) return <div>読み込み中</div>;
+  const res = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
+
+  console.log(data);
 
   const handleCheckInput = () => {
     let hasError = false;
@@ -194,7 +182,10 @@ export default function MakeDetail() {
   if (sending) {
     return <div>送信中・・・</div>;
   }
-  if (categoryLoading || imageLoading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
   return (
@@ -213,7 +204,7 @@ export default function MakeDetail() {
         thumnailUrlOnChange={handleChangeThumbnailUrl}
         thumbnailUrlDisabled={sending}
         errMsgThumbnail={errMsgThumbnail}
-        categoryOptions={apiCategories}
+        categoryOptions={res}
         categoryValue={postCategories}
         categoryOnChange={(selected) => {
           setPostCategories(selected as OptionType[]);
