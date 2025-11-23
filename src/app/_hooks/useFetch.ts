@@ -1,23 +1,11 @@
 import useSWR from "swr";
 import { useSupabaseSession } from "./useSupabaseSession";
 interface fetchPropsType {
-  //anyは許容しない設定にしているためunknownで
   endPoint: string;
 }
-interface FetchError {
-  message: string;
-  statusCode?: number;
-  errorId?: string;
-}
-export interface CommonResponseType<T = unknown> {
-  //型はジェネリクスで受け取る。初期値はunknown
-  data: T | undefined;
-  error: FetchError | null;
-  isLoading: boolean;
-  mutate: () => Promise<T | undefined>;
-}
+
 // fetcherとuseSWRを一つにまとめたカスタムフックの作成
-export const useFetch = <T>(props: fetchPropsType): CommonResponseType<T> => {
+export const useFetch = <T>(props: fetchPropsType) => {
   const { token } = useSupabaseSession();
 
   const fetcher = async (): Promise<T> => {
