@@ -2,6 +2,7 @@
 // 管理者_記事詳細取得API
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
 
@@ -9,6 +10,14 @@ export const GET = async (
   request: NextRequest,
   { params }: { params: { id: string } }
 ) => {
+  // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
+  const token = request.headers.get("Authorization") ?? "";
+  // supabaseに対してtokenを送る
+  const { error } = await supabase.auth.getUser(token);
+  // 送ったtokenが正しくない場合、errorが返却されるので、クライアントにもエラーを返却
+  if (error) {
+    NextResponse.json({ status: error.message }, { status: 400 });
+  }
   try {
     //詳細表示する記事のIDをURLパラメータのIDから取得
     const { id } = params;
@@ -32,7 +41,17 @@ export const GET = async (
       },
     });
 
-    return NextResponse.json({ status: "OK", post: post }, { status: 200 });
+    // サーバー側で画像URLを取得してレスポンスに含める
+    const {
+      data: { publicUrl: thumbnailImageUrl },
+    } = supabase.storage
+      .from("post_thumbnail")
+      .getPublicUrl(post?.thumbnailImageKey || "");
+
+    return NextResponse.json(
+      { status: "OK", post: post, thumbnailImageUrl: thumbnailImageUrl },
+      { status: 200 }
+    );
   } catch (error) {
     if (error instanceof Error)
       return NextResponse.json({ status: error.message }, { status: 400 });
@@ -69,9 +88,9 @@ interface UpdatePostRequestBody {
   content: string;
   postCategories: {
     value: number;
-    name: string;
+    label: string;
   }[];
-  thumbnailUrl: string;
+  thumbnailImageKey: string;
 }
 export const PUT = async (
   request: NextRequest,
@@ -83,7 +102,7 @@ export const PUT = async (
     const {
       title,
       content,
-      thumbnailUrl,
+      thumbnailImageKey,
       postCategories,
     }: UpdatePostRequestBody = body;
 
@@ -94,7 +113,7 @@ export const PUT = async (
       data: {
         title,
         content,
-        thumbnailUrl,
+        thumbnailImageKey,
       },
     });
 

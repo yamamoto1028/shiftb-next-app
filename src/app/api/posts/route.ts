@@ -1,11 +1,12 @@
+"use server";
 // 記事一覧取得API
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 // GETという命名にすることで、GETリクエストの時にこの関数が呼ばれる
-export const GET = async (request: NextRequest) => {
+export const GET = async () => {
   try {
     // Postの一覧をDBから取得
     const posts = await prisma.post.findMany({
@@ -28,7 +29,6 @@ export const GET = async (request: NextRequest) => {
         createdAt: "desc",
       },
     });
-    console.log(posts);
 
     // レスポンスを返す
     return NextResponse.json({ status: "OK", posts: posts }, { status: 200 });

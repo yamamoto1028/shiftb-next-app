@@ -1,8 +1,14 @@
 "use client";
 import "../../../globals.css";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
 import AdminPostForm from "@/app/admin/_components/AdminPostForm";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
+import { supabase } from "@/utils/supabase";
+import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
+import useSWR from "swr";
+import { useFetch } from "@/app/_hooks/useFetch";
+import { Category } from "@prisma/client";
 
 interface OptionType {
   value: number;
@@ -12,39 +18,46 @@ interface OptionType {
 export default function MakeDetail() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [postCategories, setPostCategories] = useState<OptionType[]>([]); //選択したカテゴリー
-  const [apiCategories, setApiCategories] = useState<OptionType[]>([]); //Categoryテーブルに登録されているカテゴリーを取得
   const [sending, setSending] = useState(false); //送信中管理
-  const [loading, setLoading] = useState(false); //読み込み中管理
+  const [thumbnailImageKey, setThumbnailImageKey] = useState("");
+  // Imageタグのsrcにセットする画像URLを持たせるstate
+  const [thumbnailImageUrl, setThumbnailImageUrl] = useState<null | string>(
+    null
+  );
   // エラーメッセージ管理
   const [errMsgTitle, setErrMsgTitle] = useState("");
   const [errMsgContent, setErrMsgContent] = useState("");
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
+  const { token } = useSupabaseSession();
 
-  useEffect(() => {
-    const getCategoryData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(
-          "/api/admin/categories" //←JSON形式のデータ
-        );
-        const { categories }: { categories: { id: number; name: string }[] } =
-          await data.json();
-        setApiCategories(
-          categories.map((category) => ({
-            value: category.id,
-            label: category.name,
-          }))
-        );
-      } catch (error) {
-        console.error(`カテゴリーデータ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getCategoryData();
-  }, []);
+  const { data, error } = useFetch<{ categories: Category[] }>({
+    endPoint: `/api/admin/categories`,
+  });
+
+  const imageUrlFetcher = async () => {
+    const {
+      data: { publicUrl },
+    } = await supabase.storage
+      .from("post_thumbnail")
+      .getPublicUrl(thumbnailImageKey);
+    setThumbnailImageUrl(publicUrl);
+    return publicUrl;
+  };
+  useSWR(thumbnailImageKey, imageUrlFetcher, {
+    onSuccess: (data) => {
+      setThumbnailImageUrl(data);
+    },
+  });
+
+  const categories = data?.categories;
+  if (!categories) return <div>読み込み中</div>;
+  const res = categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  }));
+
+  console.log(data);
 
   const handleCheckInput = () => {
     let hasError = false;
@@ -74,7 +87,7 @@ export default function MakeDetail() {
       setErrMsgContent("");
     }
     // サムネイルURL欄チェック
-    if (!thumbnailUrl) {
+    if (!thumbnailImageUrl) {
       hasErrorThumbnailUrl = true;
       setErrMsgThumbnail("画像を指定してください");
     } else {
@@ -99,18 +112,39 @@ export default function MakeDetail() {
   const handleChangeContent = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
   };
-  const handleChangeThumbnailUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setThumbnailUrl(e.target.value);
+  const handleChangeThumbnailUrl = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return; //画像が選択されていない場合はreturn
+    }
+    const file = e.target.files[0]; // 選択された画像を取得
+    const filePath = `private/${uuidv4()}`; //ファイルパスを指定
+    // Supabaseに画像をアップロード
+    const { data, error } = await supabase.storage
+      .from("post_thumbnail") //バケット名を指定
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+    // アップロードに失敗したらエラー出して終了
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    // data.pathに、画像固有のkeyが入っているので、thumbnailImageKeyに格納する
+    setThumbnailImageKey(data.path);
   };
 
   const handleClearInput = () => {
     setTitle("");
     setContent("");
-    setThumbnailUrl("");
+    setThumbnailImageUrl(null);
+    setThumbnailImageKey("");
     setPostCategories([]);
   };
 
-  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     try {
       e.preventDefault();
       const hasError = handleCheckInput(); //実行の結果を変数に格納することで「handleCheckInput」の実行結果を再利用可能になる。
@@ -120,16 +154,18 @@ export default function MakeDetail() {
           return;
         }
         setSending(true);
+        if (!token) return;
         await fetch("/api/admin/posts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: token,
           },
           body: JSON.stringify({
             title,
             content,
-            thumbnailUrl,
             postCategories,
+            thumbnailImageKey,
           }), //送信データをオブジェクト形式で渡す
         });
         alert("送信しました");
@@ -147,7 +183,10 @@ export default function MakeDetail() {
   if (sending) {
     return <div>送信中・・・</div>;
   }
-  if (loading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
   return (
@@ -162,18 +201,19 @@ export default function MakeDetail() {
         contentOnChange={handleChangeContent}
         contentDisabled={sending}
         errMsgContent={errMsgContent}
-        thumbnailUrlValue={thumbnailUrl}
+        thumbnailUrlValue={thumbnailImageUrl}
         thumnailUrlOnChange={handleChangeThumbnailUrl}
         thumbnailUrlDisabled={sending}
         errMsgThumbnail={errMsgThumbnail}
-        categoryOptions={apiCategories}
+        categoryOptions={res}
         categoryValue={postCategories}
         categoryOnChange={(selected) => {
           setPostCategories(selected as OptionType[]);
         }}
         categoryIsDisabled={sending}
+        onSubmit={handleSubmit}
       >
-        <AdminCreateButton onClick={handleSubmit} disabled={sending} />
+        <AdminCreateButton disabled={sending} />
       </AdminPostForm>
     </>
   );

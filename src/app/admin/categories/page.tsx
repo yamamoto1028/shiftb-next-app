@@ -2,45 +2,36 @@
 "use client";
 import "../../globals.css";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { Category } from "@prisma/client";
 import AdminHeaderListPage from "@/app/admin/_components/AdminHeaderListPage";
+import { useFetch } from "@/app/_hooks/useFetch";
+
+interface ApiResponse {
+  status: string;
+  categories: Category[];
+}
 
 export default function CategoryList() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data, error } = useFetch<ApiResponse>({
+    endPoint: `/api/admin/categories`,
+  });
+  console.log(data);
 
-  useEffect(() => {
-    const getCategoryData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(
-          "/api/admin/categories" //←JSON形式のデータ
-        );
-        const { categories }: { categories: Category[] } = await data.json();
-        setCategories(categories);
-      } catch (error) {
-        console.error(`カテゴリーデータ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getCategoryData();
-  }, []);
-
-  if (loading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
 
-  if (categories.length === 0) {
+  if (data.categories.length === 0) {
     return (
       <div>
-        <div>データなし</div>
-        <Link
-          href="/admin/categories/new"
-          className="text-[#000] font-[700] no-underline"
-        >
-          管理者_カテゴリー新規作成ページ
+        <div>データがありません</div>
+        <Link href="/admin/categories/new">
+          <button className="bg-blue-500 hover:bg-blue-700 border-[#548bf0] text-white font-black py-2 px-4 rounded">
+            新規作成
+          </button>
         </Link>
       </div>
     );
@@ -54,7 +45,7 @@ export default function CategoryList() {
           href={`/admin/categories/new`}
         ></AdminHeaderListPage>
         <div className="mt-8">
-          {categories.map((category) => (
+          {data.categories.map((category) => (
             <Link
               href={`/admin/categories/${category.id}`}
               key={category.id}

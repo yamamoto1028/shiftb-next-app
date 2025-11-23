@@ -4,6 +4,8 @@ import AdminHeaderListPageDetails from "./AdminHeaderListPageDetails";
 import AdminInput from "./AdminInput";
 import AdminLabel from "./AdminLabel";
 import AdminTextarea from "./AdminTextarea";
+import Image from "next/image";
+import { useRef } from "react";
 
 interface OptionType {
   value: number;
@@ -19,7 +21,7 @@ interface AdminPostFormProps {
   contentOnChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   contentDisabled: boolean;
   errMsgContent: string;
-  thumbnailUrlValue: string;
+  thumbnailUrlValue: string | null; //
   thumnailUrlOnChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   thumbnailUrlDisabled: boolean;
   errMsgThumbnail: string;
@@ -30,22 +32,30 @@ interface AdminPostFormProps {
     actionMeta: ActionMeta<OptionType>
   ) => void;
   categoryIsDisabled: boolean;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void | Promise<void>;
   children: JSX.Element;
 }
 
 export default function AdminPostForm(props: AdminPostFormProps) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const handleClickFile = () => {
+    console.log(`handleClickFile is clicked!!`);
+    fileRef.current?.click();
+  };
   return (
     <div className="home-container p-4 w-[95%]">
-      <form method="post">
+      <form onSubmit={props.onSubmit} method="post">
         <div className="mt-4 px-4">
           <AdminHeaderListPageDetails title={props.title} />
           <div className="flex flex-col">
             <AdminLabel htmlFor="title">タイトル</AdminLabel>
             <AdminInput
               id="title"
+              type="text"
               value={props.titleValue}
               onChange={props.titleOnChange}
               disabled={props.titleDisabled}
+              className="mt-1 block w-full rounded-md border border-gray-200 p-3"
             />
             {props.errMsgTitle ? (
               <AdminErrorMassage>{props.errMsgTitle}</AdminErrorMassage>
@@ -68,13 +78,45 @@ export default function AdminPostForm(props: AdminPostFormProps) {
             )}
           </div>
           <div className="flex flex-col">
-            <AdminLabel htmlFor="thumbnailUrl">サムネイルURL</AdminLabel>
+            <AdminLabel htmlFor="thumbnailImageKey">サムネイルURL</AdminLabel>
+            {/*useRefで参照を取得するinput要素をhiddenにして、代わりにdiv要素でファイル登録ボタンをカスタマイズ */}
+            <div className="mt-1 block w-full">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handleClickFile}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleClickFile();
+                  }
+                }}
+                className="mt-1 block w-[180px] rounded-md border border-gray-200 p-3"
+              >
+                ファイルを選択する
+              </div>
+              <div className="mt-5">
+                選択中のファイル：{props.thumbnailUrlValue}
+              </div>
+            </div>
+            {/* カスタマイズおわり */}
             <AdminInput
-              id="thumbnailUrl"
-              value={props.thumbnailUrlValue}
+              ref={fileRef}
+              id="thumbnailImageKey"
+              type="file"
+              accept="image/*"
               onChange={props.thumnailUrlOnChange}
               disabled={props.thumbnailUrlDisabled}
+              className="hidden"
             />
+            <div className="mt-2">
+              <Image
+                src={props.thumbnailUrlValue ?? ""}
+                alt="thumbnail"
+                width={400}
+                height={400}
+              />
+            </div>
             {props.errMsgThumbnail ? (
               <AdminErrorMassage>{props.errMsgThumbnail}</AdminErrorMassage>
             ) : (

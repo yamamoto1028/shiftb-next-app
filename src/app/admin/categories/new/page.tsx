@@ -1,13 +1,11 @@
 // カテゴリー新規作成ページ
 "use client";
-import AdminHeaderListPageDetails from "@/app/admin/_components/AdminHeaderListPageDetails";
 import "../../../globals.css";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminCreateButton from "@/app/admin/_components/AdminCreateButton";
-import AdminLabel from "@/app/admin/_components/AdminLabel";
-import AdminInput from "@/app/admin/_components/AdminInput";
 import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 
 interface SubmitResData {
   status: string;
@@ -18,6 +16,7 @@ interface SubmitResData {
 export default function AddCategoriesPage() {
   const [name, setName] = useState("");
   const [sending, setSending] = useState(false);
+  const { token } = useSupabaseSession();
 
   const router = useRouter();
   const handleChangeInputCategory = (
@@ -30,8 +29,9 @@ export default function AddCategoriesPage() {
     setName("");
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!token) return;
     try {
       setSending(true);
       if (!name) {
@@ -42,6 +42,7 @@ export default function AddCategoriesPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: token, //token(ログインしたユーザしか持っていない情報も一緒に渡す)
         },
         body: JSON.stringify({
           name,
@@ -71,8 +72,10 @@ export default function AddCategoriesPage() {
       onChange={handleChangeInputCategory}
       value={name}
       disabled={sending}
+      className="mt-1 block w-full rounded-md border border-gray-200 p-3"
+      onSubmit={handleSubmit}
     >
-      <AdminCreateButton onClick={handleSubmit} />
+      <AdminCreateButton disabled={sending} />
     </AdminCategoryForm>
   );
 }

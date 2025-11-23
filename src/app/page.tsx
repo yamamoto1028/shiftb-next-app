@@ -2,48 +2,34 @@
 import "./globals.css";
 import Link from "next/link";
 import parse from "html-react-parser";
-import { useEffect, useState } from "react";
 import { WithPostCategories } from "./_types/types";
+import { useFetch } from "./_hooks/useFetch";
 
-interface ApiResponce {
+interface ApiResponse {
   status: string;
   posts: WithPostCategories[];
 }
+
 export default function ArticleList() {
-  const [posts, setPosts] = useState<WithPostCategories[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data, error } = useFetch<ApiResponse>({
+    endPoint: "/api/posts",
+  });
+  console.log(data);
 
-  useEffect(() => {
-    const getArticleData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(
-          //api/postsを呼び出すとその配下にあるroute.tsのGETメソッドが実行される
-          "/api/posts" //←JSON形式のデータ
-        );
-        const { posts }: ApiResponce = await data.json();
-        setPosts(posts);
-      } catch (error) {
-        console.error(`記事データ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getArticleData();
-  }, []);
-
-  if (loading) {
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!data) {
     return <div>読み込み中・・・</div>;
   }
-
-  if (posts.length === 0) {
+  if (data.posts.length === 0) {
     return <div>データなし</div>;
   }
 
   return (
     <>
       <main className="home-container max-w-[800px] mx-auto my-[40px] px-[1rem] overflow-auto">
-        {posts.map((post) => (
+        {data.posts.map((post) => (
           <Link href={`/details/${post.id}`} key={post.id}>
             <article className="border border-[#ccc] p-[1rem] flex-row mb-[2rem] cursor-pointer">
               <div className="post-info flex justify-between">

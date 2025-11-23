@@ -1,12 +1,20 @@
 "use server";
 // 管理者_記事一覧取得API
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
 
-// GETという命名にすることで、GETリクエストの時にこの関数が呼ばれる
 export const GET = async (request: NextRequest) => {
+  // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
+  const token = request.headers.get("Authorization") ?? "";
+  // supabaseに対してtokenを送る
+  const { error } = await supabase.auth.getUser(token);
+  // 送ったtokenが正しくない場合、errorが返却されるので、クライアントにもエラーを返却
+  if (error) {
+    NextResponse.json({ status: error.message }, { status: 400 });
+  }
   try {
     // Postの一覧をDBから取得
     const posts = await prisma.post.findMany({
@@ -44,11 +52,10 @@ interface CreatePostRequestBody {
   title: string;
   content: string;
   postCategories: {
-    id: number;
-    value: string;
+    value: number;
     label: string;
   }[];
-  thumbnailUrl: string;
+  thumbnailImageKey: string;
 }
 export const POST = async (request: NextRequest) => {
   const body = await request.json();
@@ -56,14 +63,14 @@ export const POST = async (request: NextRequest) => {
     title,
     content,
     postCategories,
-    thumbnailUrl,
+    thumbnailImageKey,
   }: CreatePostRequestBody = body;
   try {
     const postData = await prisma.post.create({
       data: {
         title,
         content,
-        thumbnailUrl,
+        thumbnailImageKey,
       },
     });
     // 記事カテゴリーテーブルの中間テーブル(postCategory)にもレコードをcreateする
@@ -71,9 +78,10 @@ export const POST = async (request: NextRequest) => {
     const postCategory = await prisma.postCategory.createMany({
       data: postCategories.map((category) => ({
         postId: postData.id,
-        categoryId: category.id,
+        categoryId: category.value,
       })),
     });
+    console.log(postCategories);
 
     return NextResponse.json(
       { id: postData.id, category: postCategory, message: "作成しました" },

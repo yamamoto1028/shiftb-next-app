@@ -1,5 +1,7 @@
 // カテゴリー編集ページ
 "use client";
+import { useFetch } from "@/app/_hooks/useFetch";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
 import AdminCategoryForm from "@/app/admin/_components/AdminCategoryForm";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
@@ -22,63 +24,55 @@ export default function EditCategoryPage({
 }) {
   const { id } = params;
   const [category, setCategory] = useState("");
-  const [oldCategory, setOldCategory] = useState("");
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const router = useRouter();
+  const { token } = useSupabaseSession();
+  const {
+    data: categoryData,
+    error,
+    mutate,
+  } = useFetch<ApiResponse>({
+    endPoint: `/api/admin/categories/${id}`,
+  });
+  console.log(categoryData);
   useEffect(() => {
-    const getCategoryDetailData = async () => {
-      try {
-        setLoading(true);
-        const data = await fetch(`/api/admin/categories/${id}`);
-        const res: ApiResponse = await data.json();
-        if (res.category) {
-          setCategory(res.category.name);
-          setOldCategory(res.category.name);
-        }
-      } catch (error) {
-        console.log(`データ取得中にエラーが発生しました`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getCategoryDetailData();
-  }, []);
+    if (!categoryData) return;
+    setCategory(categoryData.category.name); //マウント時とresData更新時にのみAPIから取得したカテゴリー名をセット
+  }, [categoryData]);
+
   const handleChangeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCategory(e.target.value);
   };
-  if (loading) {
-    return <div>読み込み中・・・</div>;
-  }
 
   // 更新処理
-  const handleUpdateCategory = async (
-    e: React.FormEvent<HTMLButtonElement>
-  ) => {
+  const handleUpdateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!token) return;
     if (!category) {
       alert(
         "カテゴリー名が入力されていません。削除する場合は削除ボタンを押してください。"
       );
       return;
     }
-    if (oldCategory === category) {
+    if (categoryData?.category.name === category) {
       alert("変更されていません");
       return;
     }
     if (confirm(`更新しますか？`)) {
       try {
         setSending(true);
-        const data = await fetch(`/api/admin/categories/${id}`, {
+        await fetch(`/api/admin/categories/${id}`, {
           method: "PUT",
           headers: {
-            "contents-Type": "application/json",
+            "Content-Type": "application/json",
+            Authorization: token,
           },
           body: JSON.stringify({
             name: category,
           }),
         });
-        console.log(`データを更新しました`, data.json());
+        await mutate(); //使うならここ？finally↓のrouter.push()で再描画されるから本来は不要そう
+        console.log(`データを更新しました`);
       } catch (error) {
         console.log(`データ更新中にエラーが発生しました`, error);
       } finally {
@@ -95,7 +89,7 @@ export default function EditCategoryPage({
     e.preventDefault();
     if (confirm(`${category}のデータを削除しますか？`)) {
       try {
-        setLoading(true);
+        setSending(true);
         const data = await fetch(`/api/admin/categories/${id}`, {
           method: "DELETE",
         });
@@ -105,13 +99,16 @@ export default function EditCategoryPage({
       } catch (error) {
         console.log(`データ削除中にエラーが発生しました`, error);
       } finally {
-        setLoading(false);
+        setSending(false);
         router.push("/admin/categories");
       }
     }
   };
-  if (loading) {
-    return <>読み込み中・・・</>;
+  if (error) {
+    return <div>{error.message}</div>;
+  }
+  if (!categoryData) {
+    return <div>読み込み中・・・</div>;
   }
   if (sending) {
     return <>送信中・・・</>;
@@ -123,9 +120,11 @@ export default function EditCategoryPage({
       onChange={handleChangeInput}
       value={category}
       disabled={sending}
+      className="mt-1 block w-full rounded-md border border-gray-200 p-3"
+      onSubmit={handleUpdateCategory}
     >
       <div>
-        <AdminUpdateButton onClick={handleUpdateCategory} disabled={sending} />
+        <AdminUpdateButton disabled={sending} />
         <AdminDeleteButton onClick={handleDeleteCategory} disabled={sending} />
       </div>
     </AdminCategoryForm>

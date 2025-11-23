@@ -6,38 +6,31 @@ import { useRouter } from "next/navigation";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminPostForm from "@/app/admin/_components/AdminPostForm";
+import { useSupabaseSession } from "@/app/_hooks/useSupabaseSession";
+import { supabase } from "@/utils/supabase";
+import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
+import { useFetch } from "@/app/_hooks/useFetch";
+import { Category } from "@prisma/client";
 
 interface OptionType {
   value: number;
   label: string;
 }
 
-// カテゴリー一覧取得のレスポンスの型定義
-interface CategoryResponseType {
-  categories: {
-    id: number;
-    name: string;
-    createdAt: string;
-    updatedAt: string;
-  }[];
-}
 // Postのレスポンスの型の定義
 interface ApiResponse {
   status: string;
   post: Post;
+  thumbnailImageUrl: string;
 }
 interface Post {
   id: string;
   title: string;
   content: string;
-  thumbnailUrl: string;
+  thumbnailImageKey: string;
   createdAt: string;
   updatedAt: string;
   postCategories: PostCategory[];
-}
-interface Category {
-  id: number;
-  name: string;
 }
 
 interface PostCategory {
@@ -52,66 +45,54 @@ interface PostCategory {
 export default function ArticleDetail({ params }: { params: { id: string } }) {
   //引数にパラメータのURL取得可能
   const { id } = params;
-  const [post, setPost] = useState<Post | null>(null);
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailImageKey, setThumbnailImageKey] = useState("");
+  // Imageタグのsrcにセットする画像URLを持たせるstate
+  const [thumbnailImageUrl, setThumbnailImageUrl] = useState<string>("");
   const [postCategories, setPostCategories] = useState<OptionType[]>([]);
   const [apiCategories, setApiCategories] = useState<OptionType[]>([]);
   const router = useRouter();
   // エラーメッセージ管理
-  const [isError, setIsError] = useState(false);
   const [errMsgTitle, setErrMsgTitle] = useState("");
   const [errMsgContent, setErrMsgContent] = useState("");
   const [errMsgThumbnail, setErrMsgThumbnail] = useState("");
+  const { token } = useSupabaseSession();
 
+  // 記事のデータ取得
+  const { data: postData, error: postError } = useFetch<ApiResponse>({
+    endPoint: `/api/admin/posts/${id}`,
+  });
+  // カテゴリーのデータ取得
+  const { data: categoryData, error: categoryError } = useFetch<{
+    categories: Category[];
+  }>({
+    endPoint: `/api/admin/categories`,
+  });
   useEffect(() => {
-    const getArticleDetailData = async () => {
-      try {
-        setLoading(true);
-        // 記事のデータ取得
-        const data = await fetch(`/api/admin/posts/${id}`);
-        const res: ApiResponse = await data.json();
-        if (res) {
-          setPost(res.post);
-          setTitle(res.post.title);
-          setContent(res.post.content);
-          setThumbnailUrl(res.post.thumbnailUrl);
-          const categories: PostCategory[] = res.post.postCategories;
-          setPostCategories(
-            categories.map((postCategory) => {
-              const {
-                category: { id, name },
-              } = postCategory;
-              return { value: id, label: name };
-            })
-          );
-          console.log(`取得した記事データ：`);
-          console.log(res);
-        } else {
-          throw new Error("記事が見つかりません");
-        }
-        // カテゴリーのデータ取得
-        const categoryData = await fetch(
-          "/api/admin/categories" //←JSON形式のデータ
-        );
-        const { categories }: CategoryResponseType = await categoryData.json();
-        console.log(categories);
-        const result = categories.map((category) => ({
-          value: category.id,
-          label: category.name,
-        }));
-        setApiCategories(result);
-      } catch (error) {
-        console.log(`記事詳細データ取得中にエラーが発生しました:`, error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    getArticleDetailData();
-  }, [id]);
+    //編集する入力欄に初期表示するだけの既存データのセット
+    if (!postData || !categoryData) return;
+    setTitle(postData.post.title);
+    setContent(postData.post.content);
+    setThumbnailImageKey(postData.post.thumbnailImageKey);
+    setThumbnailImageUrl(postData.thumbnailImageUrl);
+    setPostCategories(
+      postData.post.postCategories.map((postCategory) => {
+        const {
+          category: { id, name },
+        } = postCategory;
+        return { value: id, label: name };
+      })
+    );
+    console.log(postData);
+    const categories = categoryData?.categories;
+    const res = categories.map((category) => ({
+      value: category.id,
+      label: category.name,
+    }));
+    setApiCategories(res);
+  }, [postData, categoryData]);
 
   const handleChangeTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -121,8 +102,32 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     setContent(e.target.value);
   };
 
-  const handleChangeThumbnailUrl = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setThumbnailUrl(e.target.value);
+  const handleChangeThumbnailUrl = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ): Promise<void> => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return; //画像が選択されていない場合はreturn
+    }
+    const file = e.target.files[0]; // 選択された画像を取得
+    const filePath = `private/${uuidv4()}`; //ファイルパスを指定
+    // Supabaseに画像をアップロード
+    const { data, error } = await supabase.storage
+      .from("post_thumbnail") //バケット名を指定
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+    // アップロードに失敗したらエラー出して終了
+    if (error) {
+      alert(error.message);
+      return;
+    }
+    // data.pathに、画像固有のkeyが入っているので、thumbnailImageKeyに格納する
+    setThumbnailImageKey(data.path);
+    const {
+      data: { publicUrl },
+    } = await supabase.storage.from("post_thumbnail").getPublicUrl(data.path);
+    setThumbnailImageUrl(publicUrl);
   };
 
   const handleCheckInput = () => {
@@ -131,10 +136,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     let hasErrorContent = false; //内容のエラーフラグ
     let hasErrorThumbnailUrl = false; //サムネイルのエラーフラグ
     //タイトル欄チェック
-    if (!title) {
+    if (!postData?.post.title) {
       hasErrorTitle = true;
       setErrMsgTitle("タイトルは必須です");
-    } else if (title.length >= 20) {
+    } else if (postData.post.title.length >= 20) {
       hasErrorTitle = true;
       setErrMsgTitle("タイトルは20文字未満にしてください");
     } else {
@@ -153,7 +158,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       setErrMsgContent("");
     }
     // サムネイルURL欄チェック
-    if (!thumbnailUrl) {
+    if (!postData?.thumbnailImageUrl) {
       hasErrorThumbnailUrl = true;
       setErrMsgThumbnail("画像を指定してください");
     } else {
@@ -172,9 +177,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     }
     return hasError;
   };
-  const handleUpdate = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     //記事更新処理
     try {
+      if (!token) return;
       e.preventDefault();
       const hasError = handleCheckInput(); //実行の結果を変数に格納することで「handleCheckInput」の実行結果を再利用可能になる。
       if (confirm(`記事を更新しますか？`)) {
@@ -187,11 +193,12 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            Authorization: token,
           },
           body: JSON.stringify({
             title,
             content,
-            thumbnailUrl,
+            thumbnailImageKey,
             postCategories,
           }),
         });
@@ -210,11 +217,16 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   const handleDelete = async (e: React.FormEvent<HTMLButtonElement>) => {
     //記事削除処理
     e.preventDefault();
-    if (confirm(`${title}の記事を削除しますか？`)) {
-      setLoading(true);
+    if (!token) return;
+    if (confirm(`${postData?.post.title}の記事を削除しますか？`)) {
+      setSending(true);
       try {
         const data = await fetch(`/api/admin/posts/${id}`, {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
         });
         const res: ApiResponse = await data.json();
         alert("記事を削除しました");
@@ -223,7 +235,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       } catch (error) {
         console.error("記事削除中にエラーが発生しました:", error);
       } finally {
-        setLoading(false);
+        setSending(false);
         router.push("/admin/posts");
       }
     }
@@ -232,11 +244,19 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
   if (sending) {
     return <div>送信中・・・</div>;
   }
-  if (loading) {
+  if (postError || categoryError) {
+    return (
+      <div>
+        {postError?.message}
+        {categoryError?.message}
+      </div>
+    );
+  }
+  if (!postData || !categoryData) {
     return <div>読み込み中・・・</div>;
   }
-  if (!post) {
-    return <div className="undefinedArticle">記事がありません</div>;
+  if (postData.post === undefined) {
+    return <div>記事がありません</div>;
   }
   return (
     <AdminPostForm
@@ -249,7 +269,7 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
       contentOnChange={handleChangeContent}
       contentDisabled={sending}
       errMsgContent={errMsgContent}
-      thumbnailUrlValue={thumbnailUrl}
+      thumbnailUrlValue={thumbnailImageUrl}
       thumnailUrlOnChange={handleChangeThumbnailUrl}
       thumbnailUrlDisabled={sending}
       errMsgThumbnail={errMsgThumbnail}
@@ -259,9 +279,10 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
         setPostCategories(selected as OptionType[]);
       }}
       categoryIsDisabled={sending}
+      onSubmit={handleUpdate}
     >
       <div>
-        <AdminUpdateButton onClick={handleUpdate} disabled={sending} />
+        <AdminUpdateButton disabled={sending} />
         <AdminDeleteButton onClick={handleDelete} disabled={sending} />
       </div>
     </AdminPostForm>
