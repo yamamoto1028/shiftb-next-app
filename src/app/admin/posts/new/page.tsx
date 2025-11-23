@@ -140,6 +140,7 @@ export default function MakeDetail() {
     setTitle("");
     setContent("");
     setThumbnailImageUrl(null);
+    setThumbnailImageKey("");
     setPostCategories([]);
   };
 
