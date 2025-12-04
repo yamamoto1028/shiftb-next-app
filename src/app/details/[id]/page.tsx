@@ -3,15 +3,26 @@ import parse from "html-react-parser";
 import Image from "next/image";
 import { WithPostCategories } from "@/app/_types/types";
 import { useFetch } from "@/app/_hooks/useFetch";
+import React from "react";
 
 interface ApiResponse {
   status: string;
   post: WithPostCategories;
 }
 
-export default function ArticleDetail({ params }: { params: { id: string } }) {
+interface ArticleDetailProps {
+  params:
+    | {
+        id: string;
+      }
+    | Promise<{ id: string }>;
+}
+
+export default function ArticleDetail({ params }: ArticleDetailProps) {
   //引数にパラメータのURL取得可能
-  const { id } = params;
+  let actualParams: { id: string };
+  actualParams = React.use(params as Promise<{ id: string }>);
+  const { id } = actualParams;
   const { data, error } = useFetch<ApiResponse>({
     endPoint: `/api/posts/${id}`,
   });
@@ -27,13 +38,15 @@ export default function ArticleDetail({ params }: { params: { id: string } }) {
     <>
       <article className="page-wrapper max-w-[800px] mx-[auto] my-[40px] p-[1rem]">
         <div className="image-container w-768px h-384px">
-          <Image
-            src={`https://hyfeaseyueuhknopsqpk.supabase.co/storage/v1/object/public/post_thumbnail/${data.post.thumbnailImageKey}`}
-            width={100}
-            height={100}
-            alt={`${data.post.title}の画像`}
-            className="article-image w-[100%] h-[100%]"
-          />
+          {data.post.thumbnailImageKey && (
+            <Image
+              src={`https://hyfeaseyueuhknopsqpk.supabase.co/storage/v1/object/public/post_thumbnail/${data.post.thumbnailImageKey}`}
+              width={100}
+              height={100}
+              alt={`${data.post.title}の画像`}
+              className="article-image w-[100%] h-[100%]"
+            />
+          )}
         </div>
         <div className="post-container p-[1rem]">
           <div className="post-info flex justify-between">

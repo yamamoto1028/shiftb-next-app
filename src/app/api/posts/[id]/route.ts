@@ -5,13 +5,16 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const GET = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+interface RouteContext {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export const GET = async (request: NextRequest, context: RouteContext) => {
   try {
     //詳細表示する記事のIDをURLパラメータのIDから取得
-    const { id } = params;
+    const { id } = await context.params;
     const post = await prisma.post.findUnique({
       where: {
         id: Number(id),

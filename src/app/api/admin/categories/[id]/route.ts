@@ -5,10 +5,13 @@ import { PrismaClient } from "@prisma/client";
 import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
-export const GET = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+
+interface RouteContext {
+  params: Promise<{
+    id: string;
+  }>;
+}
+export const GET = async (request: NextRequest, context: RouteContext) => {
   // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
   const token = request.headers.get("Authorization") ?? "";
   // supabaseに対してtokenを送る
@@ -18,7 +21,7 @@ export const GET = async (
     NextResponse.json({ status: error.message }, { status: 400 });
   }
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const categories = await prisma.category.findUnique({
       where: {
         id: Number(id),
@@ -33,6 +36,7 @@ export const GET = async (
       NextResponse.json({ status: error.message }, { status: 400 });
     }
   }
+  return NextResponse.json({ status: "success", category: null });
 };
 
 // 管理者_カテゴリー更新API
@@ -40,12 +44,9 @@ export const GET = async (
 interface UDRequestBody {
   name: string;
 }
-export const PUT = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+export const PUT = async (request: NextRequest, context: RouteContext) => {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const body = await request.json();
     const { name }: UDRequestBody = body;
 
@@ -66,12 +67,9 @@ export const PUT = async (
 };
 
 // 管理者_カテゴリー削除API
-export const DELETE = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+export const DELETE = async (request: NextRequest, context: RouteContext) => {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const deleteCategory = await prisma.category.delete({
       where: {
         id: Number(id),

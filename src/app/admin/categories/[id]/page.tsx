@@ -7,6 +7,15 @@ import AdminDeleteButton from "@/app/admin/_components/AdminDeleteButton";
 import AdminUpdateButton from "@/app/admin/_components/AdminUpdateButton";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import React from "react";
+
+interface ArticleDetailProps {
+  params:
+    | {
+        id: string;
+      }
+    | Promise<{ id: string }>;
+}
 
 interface ApiResponse {
   status: string;
@@ -17,12 +26,10 @@ interface Category {
   name: string;
 }
 
-export default function EditCategoryPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { id } = params;
+export default function EditCategoryPage({ params }: ArticleDetailProps) {
+  let actualParams: { id: string };
+  actualParams = React.use(params as Promise<{ id: string }>);
+  const { id } = actualParams;
   const [category, setCategory] = useState("");
   const [sending, setSending] = useState(false);
   const router = useRouter();

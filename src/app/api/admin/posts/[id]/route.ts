@@ -6,10 +6,13 @@ import { supabase } from "@/utils/supabase";
 
 const prisma = new PrismaClient();
 
-export const GET = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+interface RouteContext {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export const GET = async (request: NextRequest, context: RouteContext) => {
   // フロントからのリクエストのヘッダーからAuthorizationのtokenを取得
   const token = request.headers.get("Authorization") ?? "";
   // supabaseに対してtokenを送る
@@ -20,7 +23,7 @@ export const GET = async (
   }
   try {
     //詳細表示する記事のIDをURLパラメータのIDから取得
-    const { id } = params;
+    const { id } = await context.params;
     const post = await prisma.post.findUnique({
       where: {
         id: Number(id),
@@ -59,12 +62,9 @@ export const GET = async (
 };
 
 // 管理者_記事削除API
-export const DELETE = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+export const DELETE = async (request: NextRequest, context: RouteContext) => {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const deletedPost = await prisma.post.delete({
       where: {
         id: Number(id),
@@ -92,12 +92,9 @@ interface UpdatePostRequestBody {
   }[];
   thumbnailImageKey: string;
 }
-export const PUT = async (
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) => {
+export const PUT = async (request: NextRequest, context: RouteContext) => {
   try {
-    const { id } = params;
+    const { id } = await context.params;
     const body = await request.json();
     const {
       title,

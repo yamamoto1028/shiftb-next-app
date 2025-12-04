@@ -11,6 +11,15 @@ import { supabase } from "@/utils/supabase";
 import { v4 as uuidv4 } from "uuid"; // 固有IDを生成するライブラリ
 import { useFetch } from "@/app/_hooks/useFetch";
 import { Category } from "@prisma/client";
+import React from "react";
+
+interface ArticleDetailProps {
+  params:
+    | {
+        id: string;
+      }
+    | Promise<{ id: string }>;
+}
 
 interface OptionType {
   value: number;
@@ -42,9 +51,11 @@ interface PostCategory {
   category: Category;
 }
 
-export default function ArticleDetail({ params }: { params: { id: string } }) {
+export default function ArticleDetail({ params }: ArticleDetailProps) {
   //引数にパラメータのURL取得可能
-  const { id } = params;
+  let actualParams: { id: string };
+  actualParams = React.use(params as Promise<{ id: string }>);
+  const { id } = actualParams;
   const [sending, setSending] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");

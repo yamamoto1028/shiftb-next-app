@@ -110,12 +110,14 @@ export default function AdminPostForm(props: AdminPostFormProps) {
               className="hidden"
             />
             <div className="mt-2">
-              <Image
-                src={props.thumbnailUrlValue ?? ""}
-                alt="thumbnail"
-                width={400}
-                height={400}
-              />
+              {props.thumbnailUrlValue && (
+                <Image
+                  src={props.thumbnailUrlValue}
+                  alt="thumbnail"
+                  width={400}
+                  height={400}
+                />
+              )}
             </div>
             {props.errMsgThumbnail ? (
               <AdminErrorMassage>{props.errMsgThumbnail}</AdminErrorMassage>
